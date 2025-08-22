@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { Search, Bell, Menu, Settings, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ interface HeaderProps {
 export function Header({ onSidebarToggle }: HeaderProps) {
   const { user, logout } = useAuth();
   const [notifications] = useState(3);
+  const [, setLocation] = useLocation();
 
   return (
     <header className="bg-white border-b border-slate-200 fixed top-0 left-0 right-0 z-40" data-testid="header">
@@ -82,11 +84,11 @@ export function Header({ onSidebarToggle }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem data-testid="menu-item-profile">
+              <DropdownMenuItem onClick={() => setLocation('/profile')} data-testid="menu-item-profile">
                 <User className="w-4 h-4 mr-2" />
                 Profile Settings
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="menu-item-settings">
+              <DropdownMenuItem onClick={() => setLocation('/settings')} data-testid="menu-item-settings">
                 <Settings className="w-4 h-4 mr-2" />
                 System Settings
               </DropdownMenuItem>
