@@ -4,13 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { StudentProfileModal } from '@/components/StudentProfileModal';
 import { useStudents } from '@/hooks/useStudents';
 import { formatDate, formatPhoneNumber } from '@/utils/formatters';
-import { Search, Mail, Phone, MapPin, Calendar, User } from 'lucide-react';
+import { exportToCSV } from '@/utils/csvExport';
+import { useToast } from '@/components/Common/Toast';
+import { Search, Mail, Phone, MapPin, Calendar, User, Download } from 'lucide-react';
 
 export default function StudentProfiles() {
   const { students } = useStudents();
+  const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filteredStudents = students.filter(student =>
     student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -32,16 +38,49 @@ export default function StudentProfiles() {
     }
   };
 
+  const handleViewProfile = (student: any) => {
+    setSelectedStudent(student);
+    setIsModalOpen(true);
+  };
+
+  const handleExportProfiles = () => {
+    try {
+      const exportData = filteredStudents.map(student => ({
+        'Student ID': student.rollNumber,
+        'Name': `${student.firstName} ${student.lastName}`,
+        'Email': student.email,
+        'Phone': student.phone,
+        'Grade': student.grade,
+        'Status': student.status,
+        'Parent Name': student.parentName,
+        'Address': student.address,
+        'Date of Birth': formatDate(student.dateOfBirth),
+        'Enrollment Date': formatDate(student.createdAt)
+      }));
+      
+      exportToCSV(exportData, 'student_profiles');
+      addToast('Student profiles exported successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to export student profiles.', 'error');
+    }
+  };
+
   return (
     <div className="space-y-8" data-testid="student-profiles-page">
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="text-page-title">
-          Student Profiles
-        </h2>
-        <p className="text-slate-600" data-testid="text-page-subtitle">
-          View and manage detailed student information
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="text-page-title">
+            Student Profiles
+          </h2>
+          <p className="text-slate-600" data-testid="text-page-subtitle">
+            View and manage detailed student information
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleExportProfiles} data-testid="button-export-profiles">
+          <Download className="w-4 h-4 mr-2" />
+          Export Profiles
+        </Button>
       </div>
 
       {/* Search */}
@@ -142,7 +181,12 @@ export default function StudentProfiles() {
                   </div>
                 </div>
                 
-                <Button variant="outline" className="w-full" data-testid={`button-view-profile-${student.id}`}>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => handleViewProfile(student)}
+                  data-testid={`button-view-profile-${student.id}`}
+                >
                   View Full Profile
                 </Button>
               </CardContent>
@@ -150,6 +194,13 @@ export default function StudentProfiles() {
           ))
         )}
       </div>
+
+      {/* Student Profile Modal */}
+      <StudentProfileModal
+        student={selectedStudent}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }

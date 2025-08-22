@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { ClassModal } from '@/components/ClassModal';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
+import { exportToCSV } from '@/utils/csvExport';
 import { GRADES } from '@/utils/constants';
-import { Plus, Calendar, Clock, MapPin, User } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, User, Download } from 'lucide-react';
 
 const DAYS_OF_WEEK = [
   'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
@@ -21,8 +23,11 @@ export default function Scheduling() {
   const { addToast } = useToast();
   const [selectedGrade, setSelectedGrade] = useState('Grade 10');
   const [selectedSection, setSelectedSection] = useState('A');
+  const [schedules, setSchedules] = useState(dataService.getClassSchedules());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<number | undefined>();
+  const [selectedTime, setSelectedTime] = useState<string | undefined>();
   
-  const schedules = dataService.getClassSchedules();
   const courses = dataService.getCourses();
   const teachers = dataService.getTeachers();
 
@@ -43,7 +48,38 @@ export default function Scheduling() {
   };
 
   const handleAddClass = () => {
-    addToast('Class scheduling feature coming soon!', 'info');
+    setSelectedDay(undefined);
+    setSelectedTime(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleCellClick = (dayOfWeek: number, timeSlot: string) => {
+    setSelectedDay(dayOfWeek);
+    setSelectedTime(timeSlot);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveClass = (classData: any) => {
+    setSchedules(prev => [...prev, classData]);
+  };
+
+  const handleExportSchedule = () => {
+    try {
+      const exportData = filteredSchedules.map(schedule => ({
+        'Day': DAYS_OF_WEEK[schedule.dayOfWeek],
+        'Time': `${schedule.startTime} - ${schedule.endTime}`,
+        'Subject': schedule.subject,
+        'Teacher': getTeacherName(schedule.teacherId),
+        'Room': schedule.room,
+        'Grade': schedule.grade,
+        'Section': schedule.section
+      }));
+      
+      exportToCSV(exportData, `schedule_${selectedGrade}_${selectedSection}`);
+      addToast('Schedule exported successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to export schedule.', 'error');
+    }
   };
 
   return (
@@ -58,10 +94,16 @@ export default function Scheduling() {
             Manage class schedules and timetables
           </p>
         </div>
-        <Button onClick={handleAddClass} data-testid="button-add-class">
-          <Plus className="w-5 h-5 mr-2" />
-          Add Class
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportSchedule} data-testid="button-export-schedule">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={handleAddClass} data-testid="button-add-class">
+            <Plus className="w-5 h-5 mr-2" />
+            Add Class
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -123,7 +165,7 @@ export default function Scheduling() {
                   <th className="border border-slate-200 p-3 bg-slate-50 text-left font-medium text-slate-700">
                     Time
                   </th>
-                  {DAYS_OF_WEEK.slice(1, 6).map((day, index) => (
+                  {DAYS_OF_WEEK.slice(1, 7).map((day, index) => (
                     <th key={day} className="border border-slate-200 p-3 bg-slate-50 text-center font-medium text-slate-700">
                       {day}
                     </th>
@@ -233,6 +275,15 @@ export default function Scheduling() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Class Modal */}
+      <ClassModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveClass}
+        selectedDay={selectedDay}
+        selectedTime={selectedTime}
+      />
     </div>
   );
 }

@@ -3,15 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { CourseModal } from '@/components/CourseModal';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatDate } from '@/utils/formatters';
-import { Plus, Search, BookOpen, Clock, Users, Award } from 'lucide-react';
+import { exportToCSV } from '@/utils/csvExport';
+import { Plus, Search, BookOpen, Clock, Users, Award, Download, Edit, Trash2 } from 'lucide-react';
 
 export default function Curriculum() {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const courses = dataService.getCourses();
+  const [courses, setCourses] = useState(dataService.getCourses());
+  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const teachers = dataService.getTeachers();
 
   const filteredCourses = courses.filter(course =>
@@ -26,7 +30,52 @@ export default function Curriculum() {
   };
 
   const handleAddCourse = () => {
-    addToast('Course creation feature coming soon!', 'info');
+    setSelectedCourse(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditCourse = (course: any) => {
+    setSelectedCourse(course);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteCourse = (courseId: string) => {
+    if (confirm('Are you sure you want to delete this course?')) {
+      setCourses(prev => prev.filter(c => c.id !== courseId));
+      addToast('Course deleted successfully!', 'success');
+    }
+  };
+
+  const handleSaveCourse = (courseData: any) => {
+    if (selectedCourse) {
+      // Update existing course
+      setCourses(prev => prev.map(c => c.id === courseData.id ? courseData : c));
+    } else {
+      // Add new course
+      setCourses(prev => [...prev, courseData]);
+    }
+  };
+
+  const handleExportCourses = () => {
+    try {
+      const exportData = filteredCourses.map(course => ({
+        'Course Code': course.code,
+        'Course Name': course.name,
+        'Subject': course.subject,
+        'Grade': course.grade,
+        'Credits': course.credits,
+        'Duration (hours)': course.duration,
+        'Instructor': getTeacherName(course.teacherId),
+        'Status': course.status,
+        'Description': course.description,
+        'Created Date': formatDate(course.createdAt)
+      }));
+      
+      exportToCSV(exportData, 'courses_list');
+      addToast('Courses exported successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to export courses.', 'error');
+    }
   };
 
   return (
@@ -41,10 +90,16 @@ export default function Curriculum() {
             Manage academic curriculum and course offerings
           </p>
         </div>
-        <Button onClick={handleAddCourse} data-testid="button-add-course">
-          <Plus className="w-5 h-5 mr-2" />
-          Add Course
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCourses} data-testid="button-export-courses">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={handleAddCourse} data-testid="button-add-course">
+            <Plus className="w-5 h-5 mr-2" />
+            Add Course
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -199,11 +254,25 @@ export default function Curriculum() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" data-testid={`button-edit-course-${course.id}`}>
-                    Edit Course
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1" 
+                    onClick={() => handleEditCourse(course)}
+                    data-testid={`button-edit-course-${course.id}`}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1" data-testid={`button-view-course-${course.id}`}>
-                    View Details
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 text-red-600 hover:text-red-700" 
+                    onClick={() => handleDeleteCourse(course.id)}
+                    data-testid={`button-delete-course-${course.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete
                   </Button>
                 </div>
               </CardContent>
@@ -211,6 +280,14 @@ export default function Curriculum() {
           ))
         )}
       </div>
+
+      {/* Course Modal */}
+      <CourseModal
+        course={selectedCourse}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveCourse}
+      />
     </div>
   );
 }

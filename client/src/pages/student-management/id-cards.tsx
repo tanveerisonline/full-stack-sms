@@ -8,6 +8,7 @@ import { useStudents } from '@/hooks/useStudents';
 import { useToast } from '@/components/Common/Toast';
 import { GRADES } from '@/utils/constants';
 import { formatDate } from '@/utils/formatters';
+import { exportToCSV, printContent } from '@/utils/csvExport';
 import { Download, Printer, CreditCard, Search } from 'lucide-react';
 
 export default function IdCards() {
@@ -48,9 +49,25 @@ export default function IdCards() {
       return;
     }
 
-    // Simulate ID card generation
-    addToast(`Generated ${selectedStudents.length} ID card(s) successfully!`, 'success');
-    clearSelection();
+    try {
+      const selectedStudentData = students.filter(s => selectedStudents.includes(s.id));
+      const cardData = selectedStudentData.map(student => ({
+        'Student ID': student.rollNumber,
+        'Full Name': `${student.firstName} ${student.lastName}`,
+        'Grade': student.grade,
+        'Email': student.email,
+        'Phone': student.phone,
+        'Date of Birth': formatDate(student.dateOfBirth),
+        'Valid Until': 'Dec 2024',
+        'Issue Date': formatDate(new Date().toISOString())
+      }));
+
+      exportToCSV(cardData, 'id_cards_data');
+      addToast(`Generated ${selectedStudents.length} ID card(s) successfully!`, 'success');
+      clearSelection();
+    } catch (error) {
+      addToast('Failed to generate ID cards.', 'error');
+    }
   };
 
   const printIdCards = () => {
@@ -59,8 +76,83 @@ export default function IdCards() {
       return;
     }
 
-    // Simulate printing
-    addToast(`Sent ${selectedStudents.length} ID card(s) to printer!`, 'success');
+    try {
+      const selectedStudentData = students.filter(s => selectedStudents.includes(s.id));
+      
+      // Create a temporary div with all ID cards for printing
+      const printDiv = document.createElement('div');
+      printDiv.id = 'id-cards-print';
+      printDiv.style.display = 'none';
+      
+      const printContent = selectedStudentData.map(student => `
+        <div style="
+          width: 3.5in; 
+          height: 2.25in; 
+          border: 2px solid #2563eb; 
+          margin: 0.5in; 
+          padding: 16px; 
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          color: white;
+          page-break-inside: avoid;
+          border-radius: 8px;
+          font-family: Arial, sans-serif;
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-size: 10px; font-weight: bold;">STUDENT ID</div>
+            <div style="font-size: 8px;">EduManage Pro</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 4px;">
+              ${student.firstName} ${student.lastName}
+            </div>
+            <div style="font-size: 10px; margin-bottom: 2px;">
+              ID: ${student.rollNumber}
+            </div>
+            <div style="font-size: 10px; margin-bottom: 8px;">
+              ${student.grade}
+            </div>
+            <div style="font-size: 8px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px;">
+              Valid Until: Dec 2024
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      printDiv.innerHTML = printContent;
+      document.body.appendChild(printDiv);
+      
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Student ID Cards</title>
+              <style>
+                @media print {
+                  body { margin: 0; }
+                  .no-print { display: none !important; }
+                }
+              </style>
+            </head>
+            <body>
+              ${printContent}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      }
+      
+      document.body.removeChild(printDiv);
+      addToast(`Sent ${selectedStudents.length} ID card(s) to printer!`, 'success');
+    } catch (error) {
+      addToast('Failed to print ID cards.', 'error');
+    }
   };
 
   return (

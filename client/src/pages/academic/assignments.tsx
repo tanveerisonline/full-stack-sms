@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AssignmentModal } from '@/components/AssignmentModal';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatDate, formatDateTime } from '@/utils/formatters';
+import { exportToCSV } from '@/utils/csvExport';
 import { GRADES } from '@/utils/constants';
-import { Plus, Search, FileText, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Search, FileText, Calendar, CheckCircle, Clock, AlertCircle, Download, Edit } from 'lucide-react';
 
 export default function Assignments() {
   const { addToast } = useToast();
@@ -16,7 +18,6 @@ export default function Assignments() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [gradeFilter, setGradeFilter] = useState('all');
   
-  const assignments = dataService.getAssignments();
   const teachers = dataService.getTeachers();
 
   const filteredAssignments = assignments.filter(assignment => {
@@ -60,13 +61,52 @@ export default function Assignments() {
     }
   };
 
+  const [assignments, setAssignments] = useState(dataService.getAssignments());
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const isOverdue = (dueDate: string, status: string) => {
     if (status === 'closed') return false;
     return new Date(dueDate) < new Date();
   };
 
   const handleCreateAssignment = () => {
-    addToast('Assignment creation feature coming soon!', 'info');
+    setSelectedAssignment(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditAssignment = (assignment: any) => {
+    setSelectedAssignment(assignment);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveAssignment = (assignmentData: any) => {
+    if (selectedAssignment) {
+      setAssignments(prev => prev.map(a => a.id === assignmentData.id ? assignmentData : a));
+    } else {
+      setAssignments(prev => [...prev, assignmentData]);
+    }
+  };
+
+  const handleExportAssignments = () => {
+    try {
+      const exportData = filteredAssignments.map(assignment => ({
+        'Title': assignment.title,
+        'Subject': assignment.subject,
+        'Grade': assignment.grade,
+        'Total Marks': assignment.totalMarks,
+        'Due Date': formatDate(assignment.dueDate),
+        'Status': assignment.status,
+        'Teacher': getTeacherName(assignment.teacherId),
+        'Description': assignment.description,
+        'Created Date': formatDate(assignment.createdAt)
+      }));
+      
+      exportToCSV(exportData, 'assignments_list');
+      addToast('Assignments exported successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to export assignments.', 'error');
+    }
   };
 
   const stats = {
@@ -88,10 +128,16 @@ export default function Assignments() {
             Create and manage student assignments
           </p>
         </div>
-        <Button onClick={handleCreateAssignment} data-testid="button-create-assignment">
-          <Plus className="w-5 h-5 mr-2" />
-          Create Assignment
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportAssignments} data-testid="button-export-assignments">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={handleCreateAssignment} data-testid="button-create-assignment">
+            <Plus className="w-5 h-5 mr-2" />
+            Create Assignment
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -273,7 +319,13 @@ export default function Assignments() {
                   </div>
                   
                   <div className="flex flex-col gap-2 ml-4">
-                    <Button variant="outline" size="sm" data-testid={`button-edit-assignment-${assignment.id}`}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleEditAssignment(assignment)}
+                      data-testid={`button-edit-assignment-${assignment.id}`}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
                     <Button variant="outline" size="sm" data-testid={`button-view-submissions-${assignment.id}`}>
@@ -289,6 +341,14 @@ export default function Assignments() {
           ))
         )}
       </div>
+
+      {/* Assignment Modal */}
+      <AssignmentModal
+        assignment={selectedAssignment}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveAssignment}
+      />
     </div>
   );
 }

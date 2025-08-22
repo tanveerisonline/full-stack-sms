@@ -10,6 +10,7 @@ import { useStudents } from '@/hooks/useStudents';
 import { useToast } from '@/components/Common/Toast';
 import { GRADES } from '@/utils/constants';
 import { formatDate, formatPercentage } from '@/utils/formatters';
+import { exportToCSV } from '@/utils/csvExport';
 import { CheckCircle, Calendar, Clock, Download, Printer } from 'lucide-react';
 
 export default function Attendance() {
@@ -43,11 +44,116 @@ export default function Attendance() {
   };
 
   const handleExport = () => {
-    addToast('Attendance export feature coming soon!', 'info');
+    try {
+      const exportData = filteredStudents.map(student => {
+        const studentAttendance = attendanceRecords.filter(record => 
+          record.studentId === student.id && record.date === selectedDate
+        );
+        const attendance = studentAttendance[0];
+        
+        return {
+          'Student ID': student.rollNumber,
+          'Name': `${student.firstName} ${student.lastName}`,
+          'Grade': student.grade,
+          'Date': selectedDate,
+          'Status': attendance ? attendance.status : 'Not marked',
+          'Arrival Time': attendance?.arrivalTime || 'N/A',
+          'Notes': attendance?.notes || 'N/A'
+        };
+      });
+      
+      exportToCSV(exportData, `attendance_${selectedGrade}_${selectedDate}`);
+      addToast('Attendance exported successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to export attendance.', 'error');
+    }
   };
 
   const handlePrint = () => {
-    addToast('Printer functionality coming soon!', 'info');
+    try {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error('Could not open print window');
+      }
+
+      const printContent = `
+        <html>
+          <head>
+            <title>Attendance Report - ${selectedGrade} Section ${selectedSection}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .header { text-align: center; margin-bottom: 20px; }
+              .info { margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f5f5f5; }
+              .present { color: green; font-weight: bold; }
+              .absent { color: red; font-weight: bold; }
+              .late { color: orange; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>EduManage Pro - Attendance Report</h2>
+              <h3>${selectedGrade} Section ${selectedSection}</h3>
+              <p>Date: ${selectedDate}</p>
+            </div>
+            <div class="info">
+              <p><strong>Total Students:</strong> ${filteredStudents.length}</p>
+              <p><strong>Present:</strong> ${stats.presentCount}</p>
+              <p><strong>Absent:</strong> ${stats.absentCount}</p>
+              <p><strong>Late:</strong> ${stats.lateCount}</p>
+              <p><strong>Attendance Rate:</strong> ${stats.attendanceRate}%</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Roll Number</th>
+                  <th>Student Name</th>
+                  <th>Status</th>
+                  <th>Arrival Time</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredStudents.map(student => {
+                  const attendance = attendanceRecords.find(record => 
+                    record.studentId === student.id && record.date === selectedDate
+                  );
+                  const status = attendance?.status || 'Not marked';
+                  const statusClass = status === 'present' ? 'present' : 
+                                    status === 'absent' ? 'absent' : 
+                                    status === 'late' ? 'late' : '';
+                  
+                  return `
+                    <tr>
+                      <td>${student.rollNumber}</td>
+                      <td>${student.firstName} ${student.lastName}</td>
+                      <td class="${statusClass}">${status}</td>
+                      <td>${attendance?.arrivalTime || 'N/A'}</td>
+                      <td>${attendance?.notes || 'N/A'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+      
+      addToast('Attendance report sent to printer!', 'success');
+    } catch (error) {
+      addToast('Failed to print attendance report.', 'error');
+    }
   };
 
   return (
