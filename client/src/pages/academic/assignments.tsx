@@ -17,6 +17,9 @@ export default function Assignments() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [gradeFilter, setGradeFilter] = useState('all');
+  const [assignments, setAssignments] = useState(dataService.getAssignments());
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const teachers = dataService.getTeachers();
 
@@ -60,10 +63,6 @@ export default function Assignments() {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
-  const [assignments, setAssignments] = useState(dataService.getAssignments());
-  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const isOverdue = (dueDate: string, status: string) => {
     if (status === 'closed') return false;

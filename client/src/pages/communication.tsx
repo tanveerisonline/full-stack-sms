@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { EmailModal } from '@/components/EmailModal';
+import { SMSModal } from '@/components/SMSModal';
+import { NotificationModal } from '@/components/NotificationModal';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatTimeAgo } from '@/utils/formatters';
@@ -15,6 +18,9 @@ export default function Communication() {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isSMSModalOpen, setIsSMSModalOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [announcementForm, setAnnouncementForm] = useState<{
     title: string;
     content: string;
@@ -342,19 +348,39 @@ export default function Communication() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start" data-testid="button-send-email">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start" 
+                onClick={() => setIsEmailModalOpen(true)}
+                data-testid="button-send-email"
+              >
                 <Mail className="w-4 h-4 mr-3" />
                 Send Email
               </Button>
-              <Button variant="outline" className="w-full justify-start" data-testid="button-send-sms">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start" 
+                onClick={() => setIsSMSModalOpen(true)}
+                data-testid="button-send-sms"
+              >
                 <MessageSquare className="w-4 h-4 mr-3" />
                 Send SMS
               </Button>
-              <Button variant="outline" className="w-full justify-start" data-testid="button-push-notification">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start" 
+                onClick={() => setIsNotificationModalOpen(true)}
+                data-testid="button-push-notification"
+              >
                 <Bell className="w-4 h-4 mr-3" />
-                Push Notification
+                Push Notifications
               </Button>
-              <Button variant="outline" className="w-full justify-start" data-testid="button-schedule-message">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start" 
+                onClick={() => setIsEmailModalOpen(true)}
+                data-testid="button-schedule-message"
+              >
                 <Calendar className="w-4 h-4 mr-3" />
                 Schedule Message
               </Button>
@@ -404,6 +430,22 @@ export default function Communication() {
           </Card>
         </div>
       </div>
+
+      {/* Communication Modals */}
+      <EmailModal 
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+      />
+      
+      <SMSModal 
+        isOpen={isSMSModalOpen}
+        onClose={() => setIsSMSModalOpen(false)}
+      />
+      
+      <NotificationModal 
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+      />
     </div>
   );
 }

@@ -178,13 +178,14 @@ export default function Scheduling() {
                     <td className="border border-slate-200 p-3 font-medium text-slate-700 bg-slate-50">
                       {timeSlot}
                     </td>
-                    {DAYS_OF_WEEK.slice(1, 6).map((day, dayIndex) => {
+                    {DAYS_OF_WEEK.slice(1, 7).map((day, dayIndex) => {
                       const schedule = getScheduleForSlot(dayIndex + 1, timeSlot);
                       return (
                         <td key={`${day}-${timeSlot}`} className="border border-slate-200 p-2">
                           {schedule ? (
                             <div 
                               className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors cursor-pointer"
+                              onClick={() => handleCellClick(dayIndex + 1, timeSlot)}
                               data-testid={`schedule-cell-${dayIndex}-${timeSlot.replace(/[:\s-]/g, '')}`}
                             >
                               <div className="font-medium text-blue-900 text-sm mb-1">
@@ -208,7 +209,7 @@ export default function Scheduling() {
                           ) : (
                             <div 
                               className="h-20 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 hover:border-slate-300 transition-colors cursor-pointer"
-                              onClick={handleAddClass}
+                              onClick={() => handleCellClick(dayIndex + 1, timeSlot)}
                               data-testid={`empty-slot-${dayIndex}-${timeSlot.replace(/[:\s-]/g, '')}`}
                             >
                               <Plus className="w-4 h-4" />

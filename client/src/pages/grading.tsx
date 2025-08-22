@@ -4,19 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { GradingModal } from '@/components/GradingModal';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatDate } from '@/utils/formatters';
+import { exportToCSV } from '@/utils/csvExport';
 import { GRADES } from '@/utils/constants';
-import { Trophy, Search, FileText, TrendingUp, Award, Users } from 'lucide-react';
+import { Trophy, Search, FileText, TrendingUp, Award, Users, Plus, Eye, Download, Printer } from 'lucide-react';
 
 export default function Grading() {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
+  const [grades, setGrades] = useState(dataService.getGrades());
+  const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   
-  const grades = dataService.getGrades();
   const students = dataService.getStudents();
   const assignments = dataService.getAssignments();
   const exams = dataService.getExams();
@@ -64,12 +68,78 @@ export default function Grading() {
     pendingGrades: assignments.filter(a => a.status === 'published').length,
   };
 
-  const handleGradeEntry = () => {
-    addToast('Grade entry feature coming soon!', 'info');
+  const handleGradeEntry = (student?: any) => {
+    setSelectedStudent(student || null);
+    setIsGradingModalOpen(true);
+  };
+
+  const handleSaveGrade = (gradeData: any) => {
+    setGrades(prev => [...prev, gradeData]);
   };
 
   const handleReportCard = () => {
-    addToast('Report card generation feature coming soon!', 'info');
+    try {
+      const selectedStudents = selectedStudent ? [selectedStudent] : students;
+      
+      const reportData = selectedStudents.map(student => {
+        const studentGrades = grades.filter(g => g.studentId === student.id);
+        const subjects = Array.from(new Set(studentGrades.map(g => g.subject)));
+        
+        const subjectAverages = subjects.map(subject => {
+          const subjectGrades = studentGrades.filter(g => g.subject === subject);
+          const avgPercentage = subjectGrades.length > 0 
+            ? Math.round(subjectGrades.reduce((sum, g) => sum + parseFloat(g.percentage?.toString() || '0'), 0) / subjectGrades.length)
+            : 0;
+          return `${subject}: ${avgPercentage}%`;
+        }).join(', ');
+
+        const overallAverage = studentGrades.length > 0
+          ? Math.round(studentGrades.reduce((sum, g) => sum + parseFloat(g.percentage?.toString() || '0'), 0) / studentGrades.length)
+          : 0;
+
+        return {
+          'Student ID': student.rollNumber,
+          'Name': `${student.firstName} ${student.lastName}`,
+          'Grade': student.grade,
+          'Section': student.section,
+          'Subject Averages': subjectAverages || 'No grades recorded',
+          'Overall Average': `${overallAverage}%`,
+          'Total Subjects': subjects.length,
+          'Total Assessments': studentGrades.length
+        };
+      });
+      
+      exportToCSV(reportData, `report_cards_${new Date().toISOString().split('T')[0]}`);
+      addToast('Report cards generated successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to generate report cards.', 'error');
+    }
+  };
+
+  const handleViewFullGrades = (student: any) => {
+    const studentGrades = grades.filter(g => g.studentId === student.id);
+    
+    if (studentGrades.length === 0) {
+      addToast('No grades found for this student.', 'info');
+      return;
+    }
+
+    try {
+      const exportData = studentGrades.map(grade => ({
+        'Date': formatDate(grade.createdAt || new Date().toISOString()),
+        'Subject': grade.subject,
+        'Type': grade.gradeType || grade.type || 'Assessment',
+        'Score': `${grade.score || grade.marks || 0}/${grade.totalMarks || grade.total || 100}`,
+        'Percentage': `${grade.percentage || 0}%`,
+        'Grade': grade.grade,
+        'Comments': grade.comments || 'No comments'
+      }));
+      
+      exportToCSV(exportData, `${student.firstName}_${student.lastName}_grades`);
+      addToast(`${student.firstName}'s complete grade report exported!`, 'success');
+    } catch (error) {
+      addToast('Failed to export student grades.', 'error');
+    }
   };
 
   return (
@@ -85,12 +155,12 @@ export default function Grading() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleGradeEntry} data-testid="button-grade-entry">
-            <FileText className="w-4 h-4 mr-2" />
+          <Button onClick={() => handleGradeEntry()} data-testid="button-grade-entry">
+            <Plus className="w-4 h-4 mr-2" />
             Enter Grades
           </Button>
           <Button variant="outline" onClick={handleReportCard} data-testid="button-report-card">
-            <Award className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4 mr-2" />
             Generate Report Card
           </Button>
         </div>
@@ -331,6 +401,163 @@ export default function Grading() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Student Grades Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle data-testid="text-student-grades-title">Student Grades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Search and Filter Controls */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Search students..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                  data-testid="input-search-students"
+                />
+              </div>
+              <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                <SelectTrigger className="w-48" data-testid="select-filter-grade">
+                  <SelectValue placeholder="Filter by grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Grades</SelectItem>
+                  {GRADES.map((grade) => (
+                    <SelectItem key={grade} value={grade}>
+                      {grade}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <SelectTrigger className="w-48" data-testid="select-filter-subject">
+                  <SelectValue placeholder="Filter by subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject} value={subject}>
+                      {subject}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Grades Table */}
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-left p-4 font-medium text-slate-700">Student</th>
+                    <th className="text-left p-4 font-medium text-slate-700">Grade</th>
+                    <th className="text-left p-4 font-medium text-slate-700">Subject</th>
+                    <th className="text-left p-4 font-medium text-slate-700">Latest Assessment</th>
+                    <th className="text-left p-4 font-medium text-slate-700">Grade</th>
+                    <th className="text-left p-4 font-medium text-slate-700">Percentage</th>
+                    <th className="text-left p-4 font-medium text-slate-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students
+                    .filter(student => {
+                      const matchesSearch = `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
+                      const matchesGrade = selectedGrade === 'all' || student.grade === selectedGrade;
+                      return matchesSearch && matchesGrade;
+                    })
+                    .map((student) => {
+                      const studentGrades = grades.filter(g => g.studentId === student.id);
+                      const latestGrade = studentGrades.length > 0 ? studentGrades[studentGrades.length - 1] : null;
+                      const averagePercentage = studentGrades.length > 0 
+                        ? Math.round(studentGrades.reduce((sum, g) => sum + parseFloat(g.percentage?.toString() || '0'), 0) / studentGrades.length)
+                        : 0;
+
+                      return (
+                        <tr key={student.id} className="border-t border-slate-200 hover:bg-slate-50">
+                          <td className="p-4">
+                            <div>
+                              <p className="font-medium text-slate-800" data-testid={`student-name-${student.id}`}>
+                                {student.firstName} {student.lastName}
+                              </p>
+                              <p className="text-sm text-slate-600">ID: {student.rollNumber}</p>
+                            </div>
+                          </td>
+                          <td className="p-4 text-slate-700">{student.grade}</td>
+                          <td className="p-4 text-slate-700">
+                            {latestGrade ? latestGrade.subject : 'No assessments'}
+                          </td>
+                          <td className="p-4 text-slate-700">
+                            {latestGrade ? 
+                              `${latestGrade.gradeType || latestGrade.type || 'Assessment'} - ${formatDate(latestGrade.createdAt || new Date().toISOString())}` 
+                              : 'No assessments'
+                            }
+                          </td>
+                          <td className="p-4">
+                            {latestGrade ? (
+                              <Badge className={getGradeColor(latestGrade.grade)} data-testid={`grade-badge-${student.id}`}>
+                                {latestGrade.grade}
+                              </Badge>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-slate-700">
+                            {averagePercentage > 0 ? `${averagePercentage}%` : '-'}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleGradeEntry(student)}
+                                data-testid={`button-add-grade-${student.id}`}
+                              >
+                                <Plus className="w-4 h-4 mr-1" />
+                                Add Grade
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleViewFullGrades(student)}
+                                disabled={studentGrades.length === 0}
+                                data-testid={`button-view-grades-${student.id}`}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Full Grades
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+              
+              {students.filter(student => {
+                const matchesSearch = `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesGrade = selectedGrade === 'all' || student.grade === selectedGrade;
+                return matchesSearch && matchesGrade;
+              }).length === 0 && (
+                <div className="p-8 text-center text-slate-500">
+                  No students found matching your search criteria.
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grading Modal */}
+      <GradingModal
+        isOpen={isGradingModalOpen}
+        onClose={() => setIsGradingModalOpen(false)}
+        onSave={handleSaveGrade}
+        selectedStudent={selectedStudent}
+      />
     </div>
   );
 }

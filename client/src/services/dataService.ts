@@ -369,6 +369,70 @@ export class DataService {
       upcomingExams: this.getExams().filter(exam => exam.status === 'scheduled' && new Date(exam.date) > new Date()).length
     };
   }
+  // Parents
+  getParents(): any[] {
+    return storage.get<any[]>('parents') || [
+      {
+        id: '1',
+        firstName: 'John',
+        lastName: 'Smith',
+        email: 'john.smith@email.com',
+        phone: '+1234567890',
+        studentId: '1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        email: 'sarah.johnson@email.com',
+        phone: '+1234567891',
+        studentId: '2',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+  }
+
+  // Notifications
+  getNotifications(): any[] {
+    return storage.get<any[]>('notifications') || [
+      {
+        id: '1',
+        title: 'Assignment Due Reminder',
+        message: 'Math homework is due tomorrow',
+        type: 'assignment',
+        status: 'unread',
+        priority: 'medium',
+        targetAudience: 'students',
+        sender: 'Math Teacher',
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: '2',
+        title: 'Parent-Teacher Meeting',
+        message: 'Scheduled for next week',
+        type: 'event',
+        status: 'read',
+        priority: 'high',
+        targetAudience: 'parents',
+        sender: 'School Admin',
+        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: '3',
+        title: 'Grade Updated',
+        message: 'New grade posted for Science test',
+        type: 'grade',
+        status: 'unread',
+        priority: 'low',
+        targetAudience: 'students',
+        sender: 'Science Teacher',
+        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+      }
+    ];
+  }
 }
 
 export const dataService = new DataService();
