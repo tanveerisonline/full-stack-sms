@@ -267,7 +267,7 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
               <SelectContent>
                 {teachers.map((teacher) => (
                   <SelectItem key={teacher.id} value={teacher.id}>
-                    {teacher.firstName} {teacher.lastName} - {teacher.subjects.join(', ')}
+                    {teacher.firstName} {teacher.lastName} - {teacher.subjects?.join(', ') || 'No subjects assigned'}
                   </SelectItem>
                 ))}
               </SelectContent>
