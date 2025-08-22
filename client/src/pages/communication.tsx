@@ -15,7 +15,13 @@ export default function Communication() {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
-  const [announcementForm, setAnnouncementForm] = useState({
+  const [announcementForm, setAnnouncementForm] = useState<{
+    title: string;
+    content: string;
+    type: 'general' | 'academic' | 'event' | 'urgent';
+    targetAudience: ('all' | 'students' | 'parents' | 'teachers')[];
+    priority: 'low' | 'medium' | 'high';
+  }>({
     title: '',
     content: '',
     type: 'general',
@@ -37,8 +43,9 @@ export default function Communication() {
 
     const newAnnouncement = {
       ...announcementForm,
-      authorId: '1', // Current user ID
-      isPublished: true
+      createdBy: '1', // Current user ID
+      status: 'published' as const,
+      publishDate: new Date().toISOString()
     };
 
     dataService.addAnnouncement(newAnnouncement);
@@ -215,7 +222,7 @@ export default function Communication() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Select 
                     value={announcementForm.type} 
-                    onValueChange={(value) => setAnnouncementForm(prev => ({ ...prev, type: value }))}
+                    onValueChange={(value: 'general' | 'academic' | 'event' | 'urgent') => setAnnouncementForm(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger data-testid="select-announcement-type">
                       <SelectValue placeholder="Type" />
@@ -231,7 +238,7 @@ export default function Communication() {
                   
                   <Select 
                     value={announcementForm.targetAudience[0]} 
-                    onValueChange={(value) => setAnnouncementForm(prev => ({ ...prev, targetAudience: [value] }))}
+                    onValueChange={(value: 'all' | 'students' | 'parents' | 'teachers') => setAnnouncementForm(prev => ({ ...prev, targetAudience: [value] }))}
                   >
                     <SelectTrigger data-testid="select-target-audience">
                       <SelectValue placeholder="Audience" />
@@ -247,7 +254,7 @@ export default function Communication() {
                   
                   <Select 
                     value={announcementForm.priority} 
-                    onValueChange={(value) => setAnnouncementForm(prev => ({ ...prev, priority: value }))}
+                    onValueChange={(value: 'low' | 'medium' | 'high') => setAnnouncementForm(prev => ({ ...prev, priority: value }))}
                   >
                     <SelectTrigger data-testid="select-priority">
                       <SelectValue placeholder="Priority" />
@@ -317,7 +324,7 @@ export default function Communication() {
                         {announcement.content}
                       </p>
                       <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>To: {announcement.targetAudience.join(', ')}</span>
+                        <span>To: {Array.isArray(announcement.targetAudience) ? announcement.targetAudience.join(', ') : announcement.targetAudience}</span>
                         <span>{formatTimeAgo(announcement.createdAt)}</span>
                       </div>
                     </div>

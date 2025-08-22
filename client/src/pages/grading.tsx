@@ -55,7 +55,7 @@ export default function Grading() {
     }
   };
 
-  const subjects = [...new Set(grades.map(g => g.subject))];
+  const subjects = Array.from(new Set(grades.map(g => g.subject)));
   const stats = {
     totalGrades: grades.length,
     averagePercentage: grades.length > 0 ? 

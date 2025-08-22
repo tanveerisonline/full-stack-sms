@@ -32,9 +32,13 @@ export interface Teacher {
   lastName: string;
   email: string;
   phone: string;
-  subject: string;
-  department: string;
-  employeeId: string;
+  dateOfBirth: string;
+  address: string;
+  qualification: string;
+  experience: number;
+  subjects: string[];
+  salary: number;
+  joinDate: string;
   status: 'active' | 'inactive';
   avatar?: string;
   createdAt: string;
@@ -47,8 +51,10 @@ export interface Course {
   code: string;
   description: string;
   grade: string;
+  subject: string;
   teacherId: string;
   credits: number;
+  duration: number;
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
@@ -82,10 +88,14 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  type: 'general' | 'urgent' | 'academic' | 'event';
-  targetAudience: 'all' | 'students' | 'teachers' | 'parents';
-  authorId: string;
-  isPublished: boolean;
+  type: 'general' | 'academic' | 'event' | 'urgent';
+  targetAudience: ('all' | 'students' | 'parents' | 'teachers')[];
+  priority: 'low' | 'medium' | 'high';
+  publishDate: string;
+  expiryDate?: string;
+  attachments?: string[];
+  createdBy: string;
+  status: 'draft' | 'published' | 'archived';
   createdAt: string;
   updatedAt: string;
 }
@@ -107,11 +117,12 @@ export interface BookIssue {
   id: string;
   bookId: string;
   studentId: string;
-  issueDate: string;
+  issuedDate: string;
   dueDate: string;
   returnDate?: string;
   status: 'issued' | 'returned' | 'overdue';
   fineAmount?: number;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -133,10 +144,15 @@ export interface Exam {
 export interface Grade {
   id: string;
   studentId: string;
-  examId: string;
-  marksObtained: number;
+  examId?: string;
+  assignmentId?: string;
+  subject: string;
+  marks: number;
+  totalMarks: number;
+  percentage: number;
   grade: string;
-  remarks?: string;
+  comments?: string;
+  gradedBy: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -162,4 +178,36 @@ export interface ChartData {
     tension?: number;
     fill?: boolean;
   }[];
+}
+
+export interface ClassSchedule {
+  id: string;
+  courseId: string;
+  teacherId: string;
+  grade: string;
+  section: string;
+  subject: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  room: string;
+  status: 'active' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Assignment {
+  id: string;
+  title: string;
+  description: string;
+  courseId: string;
+  teacherId: string;
+  grade: string;
+  subject: string;
+  dueDate: string;
+  totalMarks: number;
+  status: 'draft' | 'published' | 'closed';
+  attachments?: string[];
+  createdAt: string;
+  updatedAt: string;
 }

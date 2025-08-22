@@ -9,7 +9,7 @@ import { FinancialChart } from '@/components/Charts/FinancialChart';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatCurrency, formatDate, formatPercentage } from '@/utils/formatters';
-import { Download, FileText, TrendingUp, Calendar, Filter, Eye, Share2 } from 'lucide-react';
+import { Download, FileText, TrendingUp, Calendar, Filter, Eye, Share2, Search } from 'lucide-react';
 
 interface Report {
   id: string;

@@ -29,7 +29,7 @@ export default function HR() {
     return matchesSearch && matchesStatus;
   });
 
-  const departments = [...new Set(teachers.map(t => t.department || 'General'))];
+  const departments = Array.from(new Set(teachers.map(t => t.subjects?.[0] || 'General')));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -47,7 +47,7 @@ export default function HR() {
   const stats = {
     totalStaff: teachers.length,
     activeStaff: teachers.filter(t => t.status === 'active').length,
-    onLeave: teachers.filter(t => t.status === 'on-leave').length,
+    onLeave: 0, // No 'on-leave' status in Teacher type
     averageSalary: teachers.length > 0 ? 
       Math.round(teachers.reduce((sum, t) => sum + (t.salary || 0), 0) / teachers.length) : 0
   };
@@ -242,7 +242,7 @@ export default function HR() {
                           {teacher.firstName} {teacher.lastName}
                         </h3>
                         <p className="text-sm text-slate-600" data-testid={`text-teacher-id-${teacher.id}`}>
-                          ID: {teacher.employeeId}
+                          ID: {teacher.id}
                         </p>
                       </div>
                     </div>
@@ -255,7 +255,7 @@ export default function HR() {
                     <div className="flex items-center space-x-2 text-sm">
                       <Award className="w-4 h-4 text-slate-400" />
                       <span className="text-slate-600" data-testid={`text-teacher-subject-${teacher.id}`}>
-                        {teacher.subject}
+                        {teacher.subjects?.join(', ') || 'N/A'}
                       </span>
                     </div>
                     

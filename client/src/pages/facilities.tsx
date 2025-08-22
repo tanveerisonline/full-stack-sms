@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/Common/Toast';
 import { formatDate } from '@/utils/formatters';
-import { Plus, Search, Building, Wrench, Calendar, MapPin, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Search, Building, Wrench, Calendar, MapPin, AlertTriangle, CheckCircle, Users } from 'lucide-react';
 
 interface Facility {
   id: string;
