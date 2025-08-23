@@ -34,6 +34,7 @@ import Hostel from "@/pages/hostel";
 import Examinations from "@/pages/examinations";
 import Reports from "@/pages/reports";
 import Admin from "@/pages/admin";
+import SuperAdminDashboard from "@/pages/admin/SuperAdminDashboard";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
@@ -62,6 +63,7 @@ function AuthenticatedRoutes() {
         <Route path="/examinations" component={Examinations} />
         <Route path="/reports" component={Reports} />
         <Route path="/admin" component={Admin} />
+        <Route path="/super-admin" component={SuperAdminDashboard} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

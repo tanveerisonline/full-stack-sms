@@ -4,6 +4,12 @@ import express from "express";
 import type { Request, Response } from "express";
 import { storage } from "./storage";
 import { seedDatabase } from "./seed";
+import superAdminRoutes from "./superAdminRoutes";
+import bcrypt from 'bcrypt';
+import { generateAccessToken, createUserSession, authenticateToken } from './middleware/auth';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import { 
   insertUserSchema, insertStudentSchema, insertTeacherSchema, insertClassSchema,
   insertAssignmentSchema, insertGradeSchema, insertAttendanceSchema, 
@@ -23,12 +29,111 @@ const handleRouteError = (res: Response, error: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password required' });
+      }
+
+      // Find user by username or email
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (!user || !user.isActive) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Check password
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Generate JWT token
+      const token = generateAccessToken(user);
+      
+      // Create session
+      await createUserSession(user.id, token, req.ip, req.get('user-agent'));
+
+      // Update last login
+      await db
+        .update(users)
+        .set({ lastLogin: new Date() })
+        .where(eq(users.id, user.id));
+
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatar: user.avatar
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Login failed' });
+    }
+  });
+
+  // Super Admin routes (protected)
+  app.use('/api/super-admin', superAdminRoutes);
+
   // Development seed endpoint (only in development)
   if (process.env.NODE_ENV === 'development') {
     app.post("/api/dev/seed", async (req: Request, res: Response) => {
       try {
         await seedDatabase();
         res.json({ message: "Database seeded successfully" });
+      } catch (error) {
+        handleRouteError(res, error);
+      }
+    });
+
+    // Create default super admin user in development
+    app.post("/api/dev/create-super-admin", async (req: Request, res: Response) => {
+      try {
+        const hashedPassword = await bcrypt.hash('superadmin123', 10);
+        
+        const [existingAdmin] = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, 'superadmin'))
+          .limit(1);
+
+        if (existingAdmin) {
+          return res.json({ message: 'Super admin already exists' });
+        }
+
+        const [superAdmin] = await db
+          .insert(users)
+          .values({
+            username: 'superadmin',
+            password: hashedPassword,
+            role: 'super_admin',
+            firstName: 'Super',
+            lastName: 'Admin',
+            email: 'superadmin@edumanage.pro',
+            phone: '+1234567890'
+          })
+          .returning();
+
+        res.json({ 
+          message: 'Super admin created successfully',
+          credentials: {
+            username: 'superadmin',
+            password: 'superadmin123'
+          }
+        });
       } catch (error) {
         handleRouteError(res, error);
       }
