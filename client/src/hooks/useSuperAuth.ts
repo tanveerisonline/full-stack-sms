@@ -92,9 +92,21 @@ export function useSuperAuth() {
     onSuccess: (data) => {
       console.log('Login success:', data);
       if (data.user.role === 'super_admin') {
+        // Store immediately in localStorage
+        localStorage.setItem('super_admin_token', data.token);
+        localStorage.setItem('super_admin_user', JSON.stringify(data.user));
+        
+        // Update state
         setToken(data.token);
         setCurrentUser(data.user);
+        
+        // Set query cache
         queryClient.setQueryData(['/api/super-admin/auth/me'], data.user);
+        
+        // Force a page reload to ensure proper state initialization
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } else {
         throw new Error('Super Admin access required');
       }
