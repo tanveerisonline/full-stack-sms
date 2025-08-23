@@ -8,14 +8,26 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
+  options: RequestInit = {}
 ): Promise<Response> {
+  // Get super admin token if making request to super admin endpoints
+  const isSuperAdminRequest = url.includes('/api/super-admin/');
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (isSuperAdminRequest) {
+    const token = localStorage.getItem('super_admin_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    ...options,
+    headers,
     credentials: "include",
   });
 
@@ -29,7 +41,21 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    
+    // Get super admin token if making request to super admin endpoints
+    const isSuperAdminRequest = url.includes('/api/super-admin/');
+    const headers: Record<string, string> = {};
+    
+    if (isSuperAdminRequest) {
+      const token = localStorage.getItem('super_admin_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+
+    const res = await fetch(url, {
+      headers,
       credentials: "include",
     });
 

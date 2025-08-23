@@ -49,7 +49,8 @@ router.get('/auth/me', authenticateToken, async (req: AuthenticatedRequest, res:
   }
 });
 
-// Apply super admin authentication to all other routes
+// Apply authentication to all other routes
+router.use(authenticateToken);
 router.use(requireSuperAdmin);
 
 // Dashboard overview stats
