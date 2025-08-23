@@ -100,9 +100,11 @@ const securityAlerts = [
 ];
 
 export default function SuperAdminDashboard() {
-  const { isAuthenticated, isLoading, user } = useSuperAuth();
+  const { isAuthenticated, isLoading, user, token } = useSuperAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('overview');
+
+  console.log('SuperAdminDashboard state:', { isAuthenticated, isLoading, user, hasToken: !!token });
 
   if (isLoading) {
     return (
@@ -115,7 +117,7 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user || user.role !== 'super_admin') {
     return <SuperAdminLogin />;
   }
 

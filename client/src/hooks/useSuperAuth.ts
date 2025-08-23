@@ -21,18 +21,23 @@ export function useSuperAuth() {
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('super_admin_token');
   });
+  const [currentUser, setCurrentUser] = useState<SuperAdminUser | null>(() => {
+    const saved = localStorage.getItem('super_admin_user');
+    return saved ? JSON.parse(saved) : null;
+  });
   
   const queryClient = useQueryClient();
 
   // Set up API request headers with token
   useEffect(() => {
-    if (token) {
-      // Set default authorization header for all API requests
+    if (token && currentUser) {
       localStorage.setItem('super_admin_token', token);
+      localStorage.setItem('super_admin_user', JSON.stringify(currentUser));
     } else {
       localStorage.removeItem('super_admin_token');
+      localStorage.removeItem('super_admin_user');
     }
-  }, [token]);
+  }, [token, currentUser]);
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['/api/super-admin/auth/me'],
@@ -63,6 +68,8 @@ export function useSuperAuth() {
     },
     enabled: !!token,
     retry: false,
+    staleTime: 0, // Force fresh data
+    refetchOnMount: true, // Always refetch when component mounts
   });
 
   const loginMutation = useMutation({
@@ -83,8 +90,10 @@ export function useSuperAuth() {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Login success:', data);
       if (data.user.role === 'super_admin') {
         setToken(data.token);
+        setCurrentUser(data.user);
         queryClient.setQueryData(['/api/super-admin/auth/me'], data.user);
       } else {
         throw new Error('Super Admin access required');
@@ -94,14 +103,18 @@ export function useSuperAuth() {
 
   const logout = () => {
     setToken(null);
+    setCurrentUser(null);
     queryClient.clear();
     localStorage.removeItem('super_admin_token');
+    localStorage.removeItem('super_admin_user');
   };
 
-  const isAuthenticated = !!token && !!user && user.role === 'super_admin';
+  // Use currentUser as the primary source of truth, fallback to query user
+  const activeUser = currentUser || user;
+  const isAuthenticated = !!token && !!activeUser && activeUser.role === 'super_admin';
 
   return {
-    user,
+    user: activeUser,
     login: loginMutation.mutate,
     logout,
     isAuthenticated,
