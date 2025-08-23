@@ -39,34 +39,41 @@ import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/students" component={StudentRegistration} />
-        <Route path="/students/profiles" component={StudentProfiles} />
-        <Route path="/students/id-cards" component={IdCards} />
-        <Route path="/academic/curriculum" component={Curriculum} />
-        <Route path="/academic/scheduling" component={Scheduling} />
-        <Route path="/academic/assignments" component={Assignments} />
-        <Route path="/attendance" component={Attendance} />
-        <Route path="/grading" component={Grading} />
-        <Route path="/communication" component={Communication} />
-        <Route path="/financial" component={Financial} />
-        <Route path="/library" component={Library} />
-        <Route path="/hr" component={HR} />
-        <Route path="/facilities" component={Facilities} />
-        <Route path="/transportation" component={Transportation} />
-        <Route path="/hostel" component={Hostel} />
-        <Route path="/examinations" component={Examinations} />
-        <Route path="/reports" component={Reports} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/super-admin" component={SuperAdminDashboard} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      {/* Super Admin Dashboard - render without Layout */}
+      <Route path="/super-admin" component={SuperAdminDashboard} />
+      
+      {/* Regular app routes - render with Layout */}
+      <Route>
+        <Layout>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/profile" component={Profile} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/students" component={StudentRegistration} />
+            <Route path="/students/profiles" component={StudentProfiles} />
+            <Route path="/students/id-cards" component={IdCards} />
+            <Route path="/academic/curriculum" component={Curriculum} />
+            <Route path="/academic/scheduling" component={Scheduling} />
+            <Route path="/academic/assignments" component={Assignments} />
+            <Route path="/attendance" component={Attendance} />
+            <Route path="/grading" component={Grading} />
+            <Route path="/communication" component={Communication} />
+            <Route path="/financial" component={Financial} />
+            <Route path="/library" component={Library} />
+            <Route path="/hr" component={HR} />
+            <Route path="/facilities" component={Facilities} />
+            <Route path="/transportation" component={Transportation} />
+            <Route path="/hostel" component={Hostel} />
+            <Route path="/examinations" component={Examinations} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/admin" component={Admin} />
+            <Route component={NotFound} />
+          </Switch>
+        </Layout>
+      </Route>
+    </Switch>
   );
 }
 
