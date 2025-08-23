@@ -121,12 +121,24 @@ export default function SuperAdminDashboard() {
   function UserManagementInterface() {
     const queryClient = useQueryClient();
     const [userSearchQuery, setUserSearchQuery] = useState('');
+    const [showAddUserModal, setShowAddUserModal] = useState(false);
+    const [newUser, setNewUser] = useState({
+      username: '',
+      email: '',
+      firstName: '',
+      lastName: '',
+      password: '',
+      role: 'student',
+      phone: ''
+    });
 
     // Fetch users from backend
-    const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery({
+    const { data: usersResponse, isLoading: usersLoading, error: usersError } = useQuery({
       queryKey: ['/api/super-admin/users'],
       retry: false,
     });
+
+    const users = (usersResponse as any)?.users || [];
 
     // Delete user mutation
     const deleteUserMutation = useMutation({
@@ -152,6 +164,35 @@ export default function SuperAdminDashboard() {
         queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
       },
     });
+
+    // Add user mutation
+    const addUserMutation = useMutation({
+      mutationFn: async (userData: any) => {
+        return await apiRequest('/api/super-admin/users', {
+          method: 'POST',
+          body: JSON.stringify(userData),
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
+        setShowAddUserModal(false);
+        setNewUser({
+          username: '',
+          email: '',
+          firstName: '',
+          lastName: '',
+          password: '',
+          role: 'student',
+          phone: ''
+        });
+      },
+    });
+
+    const handleAddUser = () => {
+      if (newUser.username && newUser.email && newUser.password && newUser.firstName && newUser.lastName) {
+        addUserMutation.mutate(newUser);
+      }
+    };
 
     const filteredUsers = users.filter((user: any) => 
       user.firstName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
@@ -212,7 +253,10 @@ export default function SuperAdminDashboard() {
               data-testid="input-search-users"
             />
           </div>
-          <Button data-testid="button-add-new-user">
+          <Button 
+            onClick={() => setShowAddUserModal(true)}
+            data-testid="button-add-new-user"
+          >
             <UserPlus className="w-4 h-4 mr-2" />
             Add User
           </Button>
@@ -289,6 +333,106 @@ export default function SuperAdminDashboard() {
             </div>
           )}
         </div>
+
+        {/* Add User Modal */}
+        {showAddUserModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h3 className="text-lg font-semibold mb-4">Add New User</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Username</label>
+                  <Input
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                    placeholder="Enter username"
+                    data-testid="input-username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                    placeholder="Enter email"
+                    data-testid="input-email"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">First Name</label>
+                    <Input
+                      value={newUser.firstName}
+                      onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
+                      placeholder="First name"
+                      data-testid="input-firstname"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Last Name</label>
+                    <Input
+                      value={newUser.lastName}
+                      onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
+                      placeholder="Last name"
+                      data-testid="input-lastname"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Password</label>
+                  <Input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    placeholder="Enter password"
+                    data-testid="input-password"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Role</label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    data-testid="select-role"
+                  >
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone (optional)</label>
+                  <Input
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                    placeholder="Enter phone number"
+                    data-testid="input-phone"
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <Button
+                  onClick={() => setShowAddUserModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                  data-testid="button-cancel-add-user"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddUser}
+                  disabled={addUserMutation.isPending}
+                  className="flex-1"
+                  data-testid="button-confirm-add-user"
+                >
+                  {addUserMutation.isPending ? 'Adding...' : 'Add User'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
