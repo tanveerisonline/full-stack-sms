@@ -16,7 +16,8 @@ export function useStudents() {
   // Mutation for creating a student
   const createMutation = useMutation({
     mutationFn: async (studentData: Omit<InsertStudent, 'rollNumber'>) => {
-      const rollNumber = generateStudentId(students.length);
+      // Generate a unique roll number based on timestamp to avoid conflicts
+      const rollNumber = `STU${Date.now().toString().slice(-6)}`;
       const response = await apiRequest('POST', '/api/students', {
         ...studentData,
         rollNumber,
