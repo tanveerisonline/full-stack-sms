@@ -463,4 +463,269 @@ router.get('/security/sessions', async (req: AuthenticatedRequest, res: Response
   }
 });
 
+// System Settings Management
+router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const settings = await db.select().from(systemSettings).orderBy(systemSettings.category, systemSettings.key);
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching system settings:', error);
+    res.status(500).json({ message: 'Failed to fetch system settings' });
+  }
+});
+
+router.post('/settings', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const validatedData = insertSystemSettingSchema.parse(req.body);
+    const [setting] = await db.insert(systemSettings).values(validatedData).returning();
+    
+    await logAuditEvent(req.user!.id, 'CREATE', 'SYSTEM_SETTING', setting.id, 
+      { category: setting.category, key: setting.key }, req);
+    
+    res.status(201).json(setting);
+  } catch (error) {
+    console.error('Error creating system setting:', error);
+    res.status(500).json({ message: 'Failed to create system setting' });
+  }
+});
+
+router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const validatedData = insertSystemSettingSchema.partial().parse(req.body);
+    validatedData.updatedAt = new Date();
+    
+    const [setting] = await db
+      .update(systemSettings)
+      .set(validatedData)
+      .where(eq(systemSettings.id, id))
+      .returning();
+    
+    if (!setting) {
+      return res.status(404).json({ message: 'System setting not found' });
+    }
+    
+    await logAuditEvent(req.user!.id, 'UPDATE', 'SYSTEM_SETTING', id, validatedData, req);
+    
+    res.json(setting);
+  } catch (error) {
+    console.error('Error updating system setting:', error);
+    res.status(500).json({ message: 'Failed to update system setting' });
+  }
+});
+
+// Roles & Permissions Management
+router.get('/roles', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const allRoles = await db.select().from(roles).orderBy(roles.name);
+    res.json(allRoles);
+  } catch (error) {
+    console.error('Error fetching roles:', error);
+    res.status(500).json({ message: 'Failed to fetch roles' });
+  }
+});
+
+router.post('/roles', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const validatedData = insertRoleSchema.parse(req.body);
+    const [role] = await db.insert(roles).values(validatedData).returning();
+    
+    await logAuditEvent(req.user!.id, 'CREATE', 'ROLE', role.id, 
+      { name: role.name, permissions: role.permissions }, req);
+    
+    res.status(201).json(role);
+  } catch (error) {
+    console.error('Error creating role:', error);
+    res.status(500).json({ message: 'Failed to create role' });
+  }
+});
+
+router.put('/roles/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const validatedData = insertRoleSchema.partial().parse(req.body);
+    validatedData.updatedAt = new Date();
+    
+    const [role] = await db
+      .update(roles)
+      .set(validatedData)
+      .where(eq(roles.id, id))
+      .returning();
+    
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+    
+    await logAuditEvent(req.user!.id, 'UPDATE', 'ROLE', id, validatedData, req);
+    
+    res.json(role);
+  } catch (error) {
+    console.error('Error updating role:', error);
+    res.status(500).json({ message: 'Failed to update role' });
+  }
+});
+
+// Active Sessions Management
+router.get('/sessions', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const activeSessions = await db
+      .select({
+        id: userSessions.id,
+        userId: userSessions.userId,
+        ipAddress: userSessions.ipAddress,
+        userAgent: userSessions.userAgent,
+        createdAt: userSessions.createdAt,
+        lastActivity: userSessions.lastActivity,
+        expiresAt: userSessions.expiresAt,
+        user: {
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role
+        }
+      })
+      .from(userSessions)
+      .leftJoin(users, eq(userSessions.userId, users.id))
+      .where(eq(userSessions.isActive, true))
+      .orderBy(desc(userSessions.lastActivity));
+    
+    res.json(activeSessions);
+  } catch (error) {
+    console.error('Error fetching active sessions:', error);
+    res.status(500).json({ message: 'Failed to fetch active sessions' });
+  }
+});
+
+router.delete('/sessions/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const [session] = await db
+      .update(userSessions)
+      .set({ isActive: false })
+      .where(eq(userSessions.id, id))
+      .returning();
+    
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+    
+    await logAuditEvent(req.user!.id, 'DELETE', 'USER_SESSION', id, 
+      { terminatedSession: id }, req);
+    
+    res.json({ message: 'Session terminated successfully' });
+  } catch (error) {
+    console.error('Error terminating session:', error);
+    res.status(500).json({ message: 'Failed to terminate session' });
+  }
+});
+
+// Backup Management (placeholder - would integrate with actual backup system)
+router.get('/backups', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // This would typically query a backups table or external backup service
+    const mockBackups = [
+      {
+        id: '1',
+        name: 'Daily Backup - ' + new Date().toISOString().split('T')[0],
+        type: 'full',
+        status: 'completed',
+        size: 2.5 * 1024 * 1024 * 1024, // 2.5GB
+        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        completedAt: new Date(Date.now() - 23 * 60 * 60 * 1000)
+      },
+      {
+        id: '2',
+        name: 'Weekly Backup - ' + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        type: 'full',
+        status: 'completed',
+        size: 2.3 * 1024 * 1024 * 1024, // 2.3GB
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 3600000)
+      }
+    ];
+    
+    res.json(mockBackups);
+  } catch (error) {
+    console.error('Error fetching backups:', error);
+    res.status(500).json({ message: 'Failed to fetch backup information' });
+  }
+});
+
+router.post('/backups', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { name, type = 'manual' } = req.body;
+    
+    // This would typically trigger a backup process
+    const backup = {
+      id: Date.now().toString(),
+      name: name || `Manual Backup - ${new Date().toISOString()}`,
+      type,
+      status: 'pending',
+      createdBy: req.user!.id,
+      createdAt: new Date()
+    };
+    
+    await logAuditEvent(req.user!.id, 'CREATE', 'BACKUP', backup.id, backup, req);
+    
+    res.status(201).json(backup);
+  } catch (error) {
+    console.error('Error creating backup:', error);
+    res.status(500).json({ message: 'Failed to create backup' });
+  }
+});
+
+// Reports & Analytics
+router.get('/reports/overview', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    // User growth over time
+    const userGrowth = await db
+      .select({
+        date: sql<string>`DATE(${users.createdAt})`,
+        count: count()
+      })
+      .from(users)
+      .where(
+        startDate && endDate 
+          ? and(
+              gte(users.createdAt, new Date(startDate as string)),
+              lte(users.createdAt, new Date(endDate as string))
+            )
+          : sql`true`
+      )
+      .groupBy(sql`DATE(${users.createdAt})`)
+      .orderBy(sql`DATE(${users.createdAt})`);
+    
+    // Activity summary
+    const activitySummary = await db
+      .select({
+        action: auditLogs.action,
+        count: count()
+      })
+      .from(auditLogs)
+      .where(
+        startDate && endDate
+          ? and(
+              gte(auditLogs.timestamp, new Date(startDate as string)),
+              lte(auditLogs.timestamp, new Date(endDate as string))
+            )
+          : sql`true`
+      )
+      .groupBy(auditLogs.action);
+    
+    res.json({
+      userGrowth,
+      activitySummary,
+      period: { startDate, endDate }
+    });
+  } catch (error) {
+    console.error('Error generating report:', error);
+    res.status(500).json({ message: 'Failed to generate report' });
+  }
+});
+
 export default router;

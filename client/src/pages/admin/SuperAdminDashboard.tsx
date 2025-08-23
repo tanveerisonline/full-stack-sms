@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { useSuperAuth } from '@/hooks/useSuperAuth';
 import SuperAdminLogin from '@/components/SuperAdminLogin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +28,9 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 
 // Mock data for dashboard
@@ -103,10 +107,191 @@ const securityAlerts = [
 ];
 
 export default function SuperAdminDashboard() {
-  const { isAuthenticated, isLoading, user, token, loginSuccess } = useSuperAuth();
+  const { isAuthenticated, isLoading, user, token, loginSuccess, logout } = useSuperAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  const handleLogout = () => {
+    logout();
+    window.location.reload();
+  };
+
+  // User Management Interface Component
+  function UserManagementInterface() {
+    const queryClient = useQueryClient();
+    const [userSearchQuery, setUserSearchQuery] = useState('');
+
+    // Fetch users from backend
+    const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery({
+      queryKey: ['/api/super-admin/users'],
+      retry: false,
+    });
+
+    // Delete user mutation
+    const deleteUserMutation = useMutation({
+      mutationFn: async (userId: string) => {
+        await apiRequest(`/api/super-admin/users/${userId}`, {
+          method: 'DELETE',
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
+      },
+    });
+
+    // Toggle user status mutation
+    const toggleUserStatusMutation = useMutation({
+      mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
+        return await apiRequest(`/api/super-admin/users/${userId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ isActive: !isActive }),
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
+      },
+    });
+
+    const filteredUsers = users.filter((user: any) => 
+      user.firstName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.username?.toLowerCase().includes(userSearchQuery.toLowerCase())
+    );
+
+    const handleDeleteUser = (userId: string) => {
+      if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+        deleteUserMutation.mutate(userId);
+      }
+    };
+
+    const handleToggleUserStatus = (user: any) => {
+      const action = user.isActive ? 'deactivate' : 'activate';
+      if (confirm(`Are you sure you want to ${action} this user?`)) {
+        toggleUserStatusMutation.mutate({ userId: user.id, isActive: user.isActive });
+      }
+    };
+
+    if (usersLoading) {
+      return (
+        <div className="w-full space-y-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-20 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (usersError) {
+      return (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load users. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    return (
+      <div className="w-full space-y-6 text-left">
+        {/* Search Input */}
+        <div className="flex space-x-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search users by name, email, or username..."
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+              className="w-full"
+              data-testid="input-search-users"
+            />
+          </div>
+          <Button data-testid="button-add-new-user">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add User
+          </Button>
+        </div>
+
+        {/* Users List */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h4 className="font-medium">All Users ({filteredUsers.length})</h4>
+          </div>
+          
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {userSearchQuery ? 'No users found matching your search.' : 'No users found.'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredUsers.map((user: any) => (
+                <div key={user.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-3">
+                        <h5 className="font-medium">
+                          {user.firstName} {user.lastName}
+                        </h5>
+                        <Badge 
+                          variant={user.isActive ? 'default' : 'destructive'}
+                          data-testid={`status-${user.id}`}
+                        >
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge variant="outline" data-testid={`role-${user.id}`}>
+                          {user.role?.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                      <p className="text-sm text-gray-500">@{user.username}</p>
+                      {user.lastLogin && (
+                        <p className="text-xs text-gray-400">
+                          Last login: {new Date(user.lastLogin).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        size="sm" 
+                        variant={user.isActive ? 'outline' : 'default'}
+                        onClick={() => handleToggleUserStatus(user)}
+                        disabled={toggleUserStatusMutation.isPending}
+                        data-testid={`button-toggle-${user.id}`}
+                      >
+                        {user.isActive ? 'Deactivate' : 'Activate'}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        data-testid={`button-edit-${user.id}`}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => handleDeleteUser(user.id)}
+                        disabled={deleteUserMutation.isPending}
+                        data-testid={`button-delete-${user.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   console.log('SuperAdminDashboard state:', { isAuthenticated, isLoading, user, hasToken: !!token, loginSuccess });
 
@@ -303,12 +488,10 @@ export default function SuperAdminDashboard() {
                     <p className="text-xs text-gray-500 truncate">{user?.role?.replace('_', ' ')}</p>
                   </div>
                   <button
-                    onClick={() => {
-                      // Add logout functionality if needed
-                      console.log('Logout clicked');
-                    }}
+                    onClick={handleLogout}
                     className="p-1 rounded hover:bg-gray-200 transition-colors"
                     title="Logout"
+                    data-testid="logout-button"
                   >
                     <LogOut className="w-4 h-4 text-gray-400" />
                   </button>
@@ -476,7 +659,12 @@ export default function SuperAdminDashboard() {
                     <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">User Management</h3>
                     <p className="text-gray-600 mb-4">Create, edit, and manage all user accounts with full CRUD operations.</p>
-                    <Button data-testid="button-manage-users">Manage Users</Button>
+                    <Button 
+                      onClick={() => setSelectedTab('users-full')}
+                      data-testid="button-manage-users"
+                    >
+                      Manage Users
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -661,6 +849,22 @@ export default function SuperAdminDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          )}
+
+          {selectedTab === 'users-full' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+                <Button 
+                  onClick={() => setSelectedTab('users')}
+                  variant="outline"
+                  data-testid="button-back-to-overview"
+                >
+                  Back to Overview
+                </Button>
+              </div>
+              <UserManagementInterface />
             </div>
           )}
 
