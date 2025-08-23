@@ -189,11 +189,15 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
 
             <div className="space-y-2">
               <Label htmlFor="section">Section</Label>
-              <Select value={formData.section} onValueChange={(value) => handleChange('section', value)}>
+              <Select 
+                value={formData.section || 'none'} 
+                onValueChange={(value) => handleChange('section', value === 'none' ? '' : value)}
+              >
                 <SelectTrigger data-testid="select-section">
                   <SelectValue placeholder="Select section (optional)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">No section</SelectItem>
                   {sections.map((section) => (
                     <SelectItem key={section} value={section}>
                       Section {section}
@@ -206,14 +210,14 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
             <div className="space-y-2">
               <Label htmlFor="teacher">Teacher</Label>
               <Select 
-                value={formData.teacherId?.toString() || ''} 
-                onValueChange={(value) => handleChange('teacherId', value ? parseInt(value) : null)}
+                value={formData.teacherId?.toString() || 'none'} 
+                onValueChange={(value) => handleChange('teacherId', value === 'none' ? null : parseInt(value))}
               >
                 <SelectTrigger data-testid="select-teacher">
                   <SelectValue placeholder="Select teacher (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No teacher assigned</SelectItem>
+                  <SelectItem value="none">No teacher assigned</SelectItem>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.id.toString()}>
                       {teacher.firstName} {teacher.lastName} - {teacher.subject}
