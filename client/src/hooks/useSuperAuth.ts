@@ -111,7 +111,8 @@ export function useSuperAuth() {
 
   // Use currentUser as the primary source of truth, fallback to query user
   const activeUser = currentUser || user;
-  const isAuthenticated = !!token && !!activeUser && activeUser.role === 'super_admin';
+  // Include login success state to immediately show as authenticated
+  const isAuthenticated = (!!token || loginMutation.isSuccess) && !!activeUser && activeUser.role === 'super_admin';
 
   return {
     user: activeUser,
@@ -121,5 +122,6 @@ export function useSuperAuth() {
     isLoading: isLoading || loginMutation.isPending,
     error: error || loginMutation.error,
     token,
+    loginSuccess: loginMutation.isSuccess,
   };
 }

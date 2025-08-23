@@ -15,7 +15,9 @@ export default function SuperAdminLogin() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login({ username, password });
+    if (username && password) {
+      login({ username, password });
+    }
   };
 
   return (
