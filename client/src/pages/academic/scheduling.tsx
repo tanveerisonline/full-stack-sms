@@ -329,6 +329,8 @@ export default function Scheduling() {
         selectedDay={selectedDay}
         selectedTime={selectedTime}
         editingEntry={editingEntry}
+        currentGrade={selectedGrade}
+        currentSection={selectedSection}
       />
     </div>
   );

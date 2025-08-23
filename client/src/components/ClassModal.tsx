@@ -17,6 +17,8 @@ interface ClassModalProps {
   selectedDay?: number;
   selectedTime?: string;
   editingEntry?: Timetable | null;
+  currentGrade?: string;
+  currentSection?: string;
 }
 
 export function ClassModal({ 
@@ -26,7 +28,9 @@ export function ClassModal({
   onDelete, 
   selectedDay, 
   selectedTime, 
-  editingEntry 
+  editingEntry,
+  currentGrade = 'Grade 10',
+  currentSection = 'A'
 }: ClassModalProps) {
   const { addToast } = useToast();
   const { teachers } = useTeachers();
@@ -35,8 +39,8 @@ export function ClassModal({
     subject: '',
     teacherId: null as number | null,
     room: '',
-    grade: 'Grade 10',
-    section: 'A',
+    grade: currentGrade,
+    section: currentSection,
     dayOfWeek: selectedDay || 1,
     startTime: selectedTime?.split(' - ')[0] || '08:00',
     endTime: selectedTime?.split(' - ')[1] || '09:00',
@@ -78,9 +82,17 @@ export function ClassModal({
     } else if (selectedDay && selectedTime) {
       setFormData(prev => ({
         ...prev,
+        grade: currentGrade,
+        section: currentSection,
         dayOfWeek: selectedDay,
         startTime: selectedTime.split(' - ')[0],
         endTime: selectedTime.split(' - ')[1]
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        grade: currentGrade,
+        section: currentSection
       }));
     }
   }, [editingEntry, selectedDay, selectedTime]);
