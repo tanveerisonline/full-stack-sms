@@ -61,7 +61,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/students", async (req: Request, res: Response) => {
     try {
       const validatedStudent = insertStudentSchema.parse(req.body);
-      const student = await storage.createStudent(validatedStudent);
+      // Set default admissionDate if not provided
+      const studentData = {
+        ...validatedStudent,
+        admissionDate: validatedStudent.admissionDate || new Date().toISOString().split('T')[0]
+      };
+      const student = await storage.createStudent(studentData);
       res.status(201).json(student);
     } catch (error) {
       handleRouteError(res, error);

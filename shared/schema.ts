@@ -322,6 +322,8 @@ export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  admissionDate: z.string().optional(),
 });
 
 export const insertTeacherSchema = createInsertSchema(teachers).omit({
