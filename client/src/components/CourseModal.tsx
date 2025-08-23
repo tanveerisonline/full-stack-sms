@@ -6,45 +6,32 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/Common/Toast';
-import { dataService } from '@/services/dataService';
+import { useTeachers } from '@/hooks/useTeachers';
 import { GRADES } from '@/utils/constants';
-
-interface Course {
-  id: string;
-  name: string;
-  code: string;
-  description: string;
-  subject: string;
-  grade: string;
-  credits: number;
-  duration: number;
-  teacherId: string;
-  status: 'active' | 'inactive' | 'draft';
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Class, InsertClass } from '@shared/schema';
 
 interface CourseModalProps {
-  course?: Course | null;
+  course?: Class | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (course: any) => void;
+  onSave: (course: InsertClass) => void;
 }
 
 export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProps) {
   const { addToast } = useToast();
-  const teachers = dataService.getTeachers();
+  const { teachers } = useTeachers();
   
   const [formData, setFormData] = useState({
     name: '',
-    code: '',
-    description: '',
-    subject: '',
     grade: '',
-    credits: 1,
-    duration: 40,
-    teacherId: '',
-    status: 'active' as 'active' | 'inactive' | 'draft'
+    section: '',
+    subject: '',
+    teacherId: null as number | null,
+    room: '',
+    schedule: '',
+    maxStudents: 30,
+    currentStudents: 0,
+    status: 'active' as 'active' | 'inactive'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,29 +42,33 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
     'Art', 'Music', 'Foreign Language', 'Economics', 'Psychology'
   ];
 
+  const sections = ['A', 'B', 'C', 'D', 'E'];
+
   useEffect(() => {
     if (course) {
       setFormData({
         name: course.name,
-        code: course.code,
-        description: course.description,
-        subject: course.subject,
         grade: course.grade,
-        credits: course.credits,
-        duration: course.duration,
+        section: course.section || '',
+        subject: course.subject,
         teacherId: course.teacherId,
-        status: course.status
+        room: course.room || '',
+        schedule: course.schedule || '',
+        maxStudents: course.maxStudents || 30,
+        currentStudents: course.currentStudents || 0,
+        status: course.status as 'active' | 'inactive'
       });
     } else {
       setFormData({
         name: '',
-        code: '',
-        description: '',
-        subject: '',
         grade: '',
-        credits: 1,
-        duration: 40,
-        teacherId: '',
+        section: '',
+        subject: '',
+        teacherId: null,
+        room: '',
+        schedule: '',
+        maxStudents: 30,
+        currentStudents: 0,
         status: 'active'
       });
     }
@@ -87,13 +78,14 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Course name is required';
-    if (!formData.code.trim()) newErrors.code = 'Course code is required';
+    if (!formData.name.trim()) newErrors.name = 'Class name is required';
     if (!formData.subject) newErrors.subject = 'Subject is required';
     if (!formData.grade) newErrors.grade = 'Grade is required';
-    if (!formData.teacherId) newErrors.teacherId = 'Teacher is required';
-    if (formData.credits < 1) newErrors.credits = 'Credits must be at least 1';
-    if (formData.duration < 1) newErrors.duration = 'Duration must be at least 1 hour';
+    if (formData.maxStudents < 1) newErrors.maxStudents = 'Max students must be at least 1';
+    if (formData.currentStudents < 0) newErrors.currentStudents = 'Current students cannot be negative';
+    if (formData.currentStudents > formData.maxStudents) {
+      newErrors.currentStudents = 'Current students cannot exceed max students';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -107,15 +99,20 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
       return;
     }
 
-    const courseData = {
-      ...formData,
-      id: course?.id || `course_${Date.now()}`,
-      createdAt: course?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    const courseData: InsertClass = {
+      name: formData.name,
+      grade: formData.grade,
+      section: formData.section || null,
+      subject: formData.subject,
+      teacherId: formData.teacherId,
+      room: formData.room || null,
+      schedule: formData.schedule || null,
+      maxStudents: formData.maxStudents,
+      currentStudents: formData.currentStudents,
+      status: formData.status
     };
 
     onSave(courseData);
-    addToast(course ? 'Course updated successfully!' : 'Course created successfully!', 'success');
     onClose();
   };
 
@@ -126,61 +123,40 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
     }
   };
 
+  const getTeacherName = (teacherId: number | null) => {
+    if (!teacherId) return 'No teacher assigned';
+    const teacher = teachers.find(t => t.id === teacherId);
+    return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unknown teacher';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl" data-testid="course-modal">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {course ? 'Edit Course' : 'Create New Course'}
+            {course ? 'Edit Class' : 'Add New Class'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="courseName">Course Name *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="name">Class Name *</Label>
               <Input
-                id="courseName"
+                id="name"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
                 placeholder="e.g., Advanced Mathematics"
                 className={errors.name ? 'border-red-500' : ''}
-                data-testid="input-course-name"
+                data-testid="input-class-name"
               />
-              {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
+              {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
             </div>
 
-            <div>
-              <Label htmlFor="courseCode">Course Code *</Label>
-              <Input
-                id="courseCode"
-                value={formData.code}
-                onChange={(e) => handleChange('code', e.target.value.toUpperCase())}
-                placeholder="e.g., MATH101"
-                className={errors.code ? 'border-red-500' : ''}
-                data-testid="input-course-code"
-              />
-              {errors.code && <p className="text-sm text-red-600 mt-1">{errors.code}</p>}
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="courseDescription">Description</Label>
-            <Textarea
-              id="courseDescription"
-              value={formData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Describe the course content and objectives..."
-              rows={3}
-              data-testid="textarea-course-description"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="courseSubject">Subject *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject *</Label>
               <Select value={formData.subject} onValueChange={(value) => handleChange('subject', value)}>
-                <SelectTrigger className={errors.subject ? 'border-red-500' : ''} data-testid="select-course-subject">
+                <SelectTrigger className={errors.subject ? 'border-red-500' : ''} data-testid="select-subject">
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
@@ -191,13 +167,13 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
                   ))}
                 </SelectContent>
               </Select>
-              {errors.subject && <p className="text-sm text-red-600 mt-1">{errors.subject}</p>}
+              {errors.subject && <p className="text-sm text-red-500">{errors.subject}</p>}
             </div>
 
-            <div>
-              <Label htmlFor="courseGrade">Grade *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="grade">Grade *</Label>
               <Select value={formData.grade} onValueChange={(value) => handleChange('grade', value)}>
-                <SelectTrigger className={errors.grade ? 'border-red-500' : ''} data-testid="select-course-grade">
+                <SelectTrigger className={errors.grade ? 'border-red-500' : ''} data-testid="select-grade">
                   <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
                 <SelectContent>
@@ -208,79 +184,116 @@ export function CourseModal({ course, isOpen, onClose, onSave }: CourseModalProp
                   ))}
                 </SelectContent>
               </Select>
-              {errors.grade && <p className="text-sm text-red-600 mt-1">{errors.grade}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="courseCredits">Credits *</Label>
-              <Input
-                id="courseCredits"
-                type="number"
-                min="1"
-                max="10"
-                value={formData.credits}
-                onChange={(e) => handleChange('credits', parseInt(e.target.value) || 1)}
-                className={errors.credits ? 'border-red-500' : ''}
-                data-testid="input-course-credits"
-              />
-              {errors.credits && <p className="text-sm text-red-600 mt-1">{errors.credits}</p>}
+              {errors.grade && <p className="text-sm text-red-500">{errors.grade}</p>}
             </div>
 
-            <div>
-              <Label htmlFor="courseDuration">Duration (hours) *</Label>
-              <Input
-                id="courseDuration"
-                type="number"
-                min="1"
-                max="200"
-                value={formData.duration}
-                onChange={(e) => handleChange('duration', parseInt(e.target.value) || 40)}
-                className={errors.duration ? 'border-red-500' : ''}
-                data-testid="input-course-duration"
-              />
-              {errors.duration && <p className="text-sm text-red-600 mt-1">{errors.duration}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="courseStatus">Status</Label>
-              <Select value={formData.status} onValueChange={(value: 'active' | 'inactive' | 'draft') => handleChange('status', value)}>
-                <SelectTrigger data-testid="select-course-status">
-                  <SelectValue />
+            <div className="space-y-2">
+              <Label htmlFor="section">Section</Label>
+              <Select value={formData.section} onValueChange={(value) => handleChange('section', value)}>
+                <SelectTrigger data-testid="select-section">
+                  <SelectValue placeholder="Select section (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  {sections.map((section) => (
+                    <SelectItem key={section} value={section}>
+                      Section {section}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="teacher">Teacher</Label>
+              <Select 
+                value={formData.teacherId?.toString() || ''} 
+                onValueChange={(value) => handleChange('teacherId', value ? parseInt(value) : null)}
+              >
+                <SelectTrigger data-testid="select-teacher">
+                  <SelectValue placeholder="Select teacher (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No teacher assigned</SelectItem>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                      {teacher.firstName} {teacher.lastName} - {teacher.subject}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="room">Room</Label>
+              <Input
+                id="room"
+                value={formData.room}
+                onChange={(e) => handleChange('room', e.target.value)}
+                placeholder="e.g., Room 101"
+                data-testid="input-room"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="maxStudents">Max Students *</Label>
+              <Input
+                id="maxStudents"
+                type="number"
+                min="1"
+                value={formData.maxStudents}
+                onChange={(e) => handleChange('maxStudents', parseInt(e.target.value) || 1)}
+                className={errors.maxStudents ? 'border-red-500' : ''}
+                data-testid="input-max-students"
+              />
+              {errors.maxStudents && <p className="text-sm text-red-500">{errors.maxStudents}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="currentStudents">Current Students</Label>
+              <Input
+                id="currentStudents"
+                type="number"
+                min="0"
+                value={formData.currentStudents}
+                onChange={(e) => handleChange('currentStudents', parseInt(e.target.value) || 0)}
+                className={errors.currentStudents ? 'border-red-500' : ''}
+                data-testid="input-current-students"
+              />
+              {errors.currentStudents && <p className="text-sm text-red-500">{errors.currentStudents}</p>}
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="courseTeacher">Instructor *</Label>
-            <Select value={formData.teacherId} onValueChange={(value) => handleChange('teacherId', value)}>
-              <SelectTrigger className={errors.teacherId ? 'border-red-500' : ''} data-testid="select-course-teacher">
-                <SelectValue placeholder="Select instructor" />
+          <div className="space-y-2">
+            <Label htmlFor="schedule">Schedule</Label>
+            <Textarea
+              id="schedule"
+              value={formData.schedule}
+              onChange={(e) => handleChange('schedule', e.target.value)}
+              placeholder="e.g., Mon, Wed, Fri 9:00-10:00 AM"
+              rows={2}
+              data-testid="textarea-schedule"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
+              <SelectTrigger data-testid="select-status">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {teachers.map((teacher) => (
-                  <SelectItem key={teacher.id} value={teacher.id}>
-                    {teacher.firstName} {teacher.lastName} - {teacher.subjects?.join(', ') || 'No subjects assigned'}
-                  </SelectItem>
-                ))}
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            {errors.teacherId && <p className="text-sm text-red-600 mt-1">{errors.teacherId}</p>}
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} data-testid="button-course-cancel">
+            <Button type="button" variant="outline" onClick={onClose} data-testid="button-cancel">
               Cancel
             </Button>
-            <Button type="submit" data-testid="button-course-save">
-              {course ? 'Update Course' : 'Create Course'}
+            <Button type="submit" data-testid="button-save">
+              {course ? 'Update Class' : 'Create Class'}
             </Button>
           </div>
         </form>
