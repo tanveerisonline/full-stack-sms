@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AssignmentModal } from '@/components/AssignmentModal';
+import { SubmissionModal } from '@/components/SubmissionModal';
+import { GradeModal } from '@/components/GradeModal';
 import { useToast } from '@/components/Common/Toast';
 import { useAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment } from '@/hooks/useAssignments';
 import { useTeachers } from '@/hooks/useTeachers';
 import { formatDate, formatDateTime } from '@/utils/formatters';
 import { exportToCSV } from '@/utils/csvExport';
 import { GRADES } from '@/utils/constants';
-import { Plus, Search, FileText, Calendar, CheckCircle, Clock, AlertCircle, Download, Edit, Loader2 } from 'lucide-react';
+import { Plus, Search, FileText, Calendar, CheckCircle, Clock, AlertCircle, Download, Edit, Loader2, Trash2, FileDown, Send } from 'lucide-react';
 import type { Assignment, InsertAssignment } from '@shared/schema';
 
 export default function Assignments() {
@@ -21,6 +23,9 @@ export default function Assignments() {
   const [gradeFilter, setGradeFilter] = useState('all');
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
   
   // API hooks
   const { data: assignments = [], isLoading: assignmentsLoading } = useAssignments();
@@ -108,12 +113,59 @@ export default function Assignments() {
   };
   
   const handleDeleteAssignment = async (assignmentId: number) => {
-    try {
-      await deleteAssignmentMutation.mutateAsync(assignmentId);
-      addToast('Assignment deleted successfully!', 'success');
-    } catch (error) {
-      addToast('Failed to delete assignment.', 'error');
+    if (confirm('Are you sure you want to delete this assignment? This action cannot be undone.')) {
+      try {
+        await deleteAssignmentMutation.mutateAsync(assignmentId);
+        addToast('Assignment deleted successfully!', 'success');
+      } catch (error) {
+        addToast('Failed to delete assignment.', 'error');
+      }
     }
+  };
+
+  const handleViewSubmissions = (assignmentId: number) => {
+    setSelectedAssignmentId(assignmentId);
+    setIsSubmissionModalOpen(true);
+    addToast('Viewing submissions for assignment', 'info');
+  };
+
+  const handleGradeAssignment = (assignmentId: number) => {
+    setSelectedAssignmentId(assignmentId);
+    setIsGradeModalOpen(true);
+    addToast('Opening grading interface', 'info');
+  };
+
+  const handleDownloadAssignment = (assignment: Assignment) => {
+    // Generate assignment content for download
+    const assignmentContent = `
+Assignment: ${assignment.title}
+Subject: ${assignment.subject}
+Grade: ${assignment.grade}
+Due Date: ${assignment.dueDate}
+Total Marks: ${assignment.totalMarks}
+
+Description:
+${assignment.description || 'No description provided'}
+
+Instructions:
+${assignment.instructions || 'No special instructions'}
+
+Created by: ${getTeacherName(assignment.teacherId)}
+Status: ${assignment.status}
+    `.trim();
+
+    // Create and download as text file (simulating PDF/DOC)
+    const blob = new Blob([assignmentContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${assignment.title.replace(/[^a-zA-Z0-9]/g, '_')}_assignment.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    addToast('Assignment downloaded successfully!', 'success');
   };
 
   const handleExportAssignments = () => {
@@ -366,11 +418,37 @@ export default function Assignments() {
                       <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
-                    <Button variant="outline" size="sm" data-testid={`button-view-submissions-${assignment.id}`}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleViewSubmissions(assignment.id)}
+                      data-testid={`button-view-submissions-${assignment.id}`}
+                    >
                       Submissions
                     </Button>
-                    <Button variant="outline" size="sm" data-testid={`button-grade-assignment-${assignment.id}`}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleGradeAssignment(assignment.id)}
+                      data-testid={`button-grade-assignment-${assignment.id}`}
+                    >
                       Grade
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDownloadAssignment(assignment)}
+                      data-testid={`button-download-assignment-${assignment.id}`}
+                    >
+                      Download
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => handleDeleteAssignment(assignment.id)}
+                      data-testid={`button-delete-assignment-${assignment.id}`}
+                    >
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -386,6 +464,20 @@ export default function Assignments() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveAssignment}
+      />
+
+      {/* Submission Modal */}
+      <SubmissionModal
+        assignmentId={selectedAssignmentId}
+        isOpen={isSubmissionModalOpen}
+        onClose={() => setIsSubmissionModalOpen(false)}
+      />
+
+      {/* Grade Modal */}
+      <GradeModal
+        assignmentId={selectedAssignmentId}
+        isOpen={isGradeModalOpen}
+        onClose={() => setIsGradeModalOpen(false)}
       />
     </div>
   );
