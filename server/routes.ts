@@ -42,7 +42,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.username, username))
+        .where(
+          username.includes('@') 
+            ? eq(users.email, username)
+            : eq(users.username, username)
+        )
         .limit(1);
 
       if (!user || !user.isActive) {
