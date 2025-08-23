@@ -1,2 +1,2 @@
 // Teacher Management Hooks
-export { default as useTeachers } from '../../useTeachers';
+export { default as useTeachers } from './useTeachers';

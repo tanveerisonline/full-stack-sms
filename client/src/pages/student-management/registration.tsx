@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { StudentTable } from '@/components/Student/StudentTable';
-import { StudentForm } from '@/components/Student/StudentForm';
-import { StudentDetailModal } from '@/components/modals/StudentDetailModal';
-import { useStudents } from '@/hooks/useStudents';
+import { StudentTable, StudentForm, StudentDetailModal } from '@/components/features/student';
+import { useStudents } from '@/hooks/features/student';
 import { useToast } from '@/components/Common/Toast';
 import { Student } from '@/types';
 import { Plus } from 'lucide-react';

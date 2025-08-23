@@ -8,8 +8,7 @@ import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatDate } from '@/utils/formatters';
 import { BOOK_CATEGORIES } from '@/utils/constants';
-import { BookModal } from '@/components/BookModal';
-import { IssueBookModal } from '@/components/IssueBookModal';
+import { BookModal, IssueBookModal } from '@/components/features/library';
 import { Plus, Search, BookOpen, Users, Clock, AlertCircle, Download, CornerDownLeft } from 'lucide-react';
 
 export default function Library() {

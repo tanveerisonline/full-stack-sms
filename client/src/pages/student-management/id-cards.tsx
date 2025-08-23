@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useStudents } from '@/hooks/useStudents';
+import { useStudents } from '@/hooks/features/student';
 import { useToast } from '@/components/Common/Toast';
 import { GRADES } from '@/utils/constants';
 import { formatDate } from '@/utils/formatters';

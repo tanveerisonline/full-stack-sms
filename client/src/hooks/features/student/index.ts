@@ -1,2 +1,2 @@
 // Student Management Hooks
-export { default as useStudents } from '../../useStudents';
+export { default as useStudents } from './useStudents';
