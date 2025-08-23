@@ -23,7 +23,10 @@ import {
   Clock,
   Eye,
   Plus,
-  Download
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  LogOut
 } from 'lucide-react';
 
 // Mock data for dashboard
@@ -103,6 +106,7 @@ export default function SuperAdminDashboard() {
   const { isAuthenticated, isLoading, user, token, loginSuccess } = useSuperAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   console.log('SuperAdminDashboard state:', { isAuthenticated, isLoading, user, hasToken: !!token, loginSuccess });
 
@@ -174,73 +178,144 @@ export default function SuperAdminDashboard() {
       </div>
 
       <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
-          <nav className="p-4 space-y-2">
-            <Button
-              variant={selectedTab === 'overview' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setSelectedTab('overview')}
-              data-testid="nav-overview"
-            >
-              <BarChart3 className="w-4 h-4 mr-3" />
-              Overview
-            </Button>
-            <Button
-              variant={selectedTab === 'users' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setSelectedTab('users')}
-              data-testid="nav-user-management"
-            >
-              <Users className="w-4 h-4 mr-3" />
-              User Management
-            </Button>
-            <Button
-              variant={selectedTab === 'roles' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setSelectedTab('roles')}
-              data-testid="nav-roles-permissions"
-            >
-              <Shield className="w-4 h-4 mr-3" />
-              Roles & Permissions
-            </Button>
-            <Button
-              variant={selectedTab === 'settings' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setSelectedTab('settings')}
-              data-testid="nav-system-settings"
-            >
-              <Settings className="w-4 h-4 mr-3" />
-              System Settings
-            </Button>
-            <Button
-              variant={selectedTab === 'audit' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setSelectedTab('audit')}
-              data-testid="nav-audit-logs"
-            >
-              <FileText className="w-4 h-4 mr-3" />
-              Audit Logs
-            </Button>
-            <Button
-              variant={selectedTab === 'backup' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setSelectedTab('backup')}
-              data-testid="nav-backup-restore"
-            >
-              <Database className="w-4 h-4 mr-3" />
-              Backup & Restore
-            </Button>
-            <Button
-              variant={selectedTab === 'reports' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setSelectedTab('reports')}
-              data-testid="nav-reports-analytics"
-            >
-              <BarChart3 className="w-4 h-4 mr-3" />
-              Reports & Analytics
-            </Button>
-          </nav>
+        {/* Collapsible Sidebar */}
+        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white border-r border-gray-200 min-h-screen transition-all duration-300 ease-in-out`}>
+          <div className="p-4">
+            {/* Sidebar Header with Toggle */}
+            <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} mb-6`}>
+              {!sidebarCollapsed && (
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Super Admin</h2>
+                    <p className="text-xs text-gray-500">System Control</p>
+                  </div>
+                </div>
+              )}
+              {sidebarCollapsed && (
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                data-testid="sidebar-toggle"
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {sidebarCollapsed ? (
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                ) : (
+                  <ChevronLeft className="w-4 h-4 text-gray-600" />
+                )}
+              </button>
+            </div>
+
+            {/* Navigation */}
+            <nav className="space-y-2">
+              <Button
+                variant={selectedTab === 'overview' ? 'default' : 'ghost'}
+                className={`w-full ${sidebarCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+                onClick={() => setSelectedTab('overview')}
+                data-testid="nav-overview"
+                title={sidebarCollapsed ? 'Overview' : ''}
+              >
+                <BarChart3 className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-3">Overview</span>}
+              </Button>
+              <Button
+                variant={selectedTab === 'users' ? 'default' : 'ghost'}
+                className={`w-full ${sidebarCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+                onClick={() => setSelectedTab('users')}
+                data-testid="nav-user-management"
+                title={sidebarCollapsed ? 'User Management' : ''}
+              >
+                <Users className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-3">User Management</span>}
+              </Button>
+              <Button
+                variant={selectedTab === 'roles' ? 'default' : 'ghost'}
+                className={`w-full ${sidebarCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+                onClick={() => setSelectedTab('roles')}
+                data-testid="nav-roles-permissions"
+                title={sidebarCollapsed ? 'Roles & Permissions' : ''}
+              >
+                <Shield className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-3">Roles & Permissions</span>}
+              </Button>
+              <Button
+                variant={selectedTab === 'settings' ? 'default' : 'ghost'}
+                className={`w-full ${sidebarCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+                onClick={() => setSelectedTab('settings')}
+                data-testid="nav-system-settings"
+                title={sidebarCollapsed ? 'System Settings' : ''}
+              >
+                <Settings className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-3">System Settings</span>}
+              </Button>
+              <Button
+                variant={selectedTab === 'audit' ? 'default' : 'ghost'}
+                className={`w-full ${sidebarCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+                onClick={() => setSelectedTab('audit')}
+                data-testid="nav-audit-logs"
+                title={sidebarCollapsed ? 'Audit Logs' : ''}
+              >
+                <FileText className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-3">Audit Logs</span>}
+              </Button>
+              <Button
+                variant={selectedTab === 'backup' ? 'default' : 'ghost'}
+                className={`w-full ${sidebarCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+                onClick={() => setSelectedTab('backup')}
+                data-testid="nav-backup-restore"
+                title={sidebarCollapsed ? 'Backup & Restore' : ''}
+              >
+                <Database className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-3">Backup & Restore</span>}
+              </Button>
+              <Button
+                variant={selectedTab === 'reports' ? 'default' : 'ghost'}
+                className={`w-full ${sidebarCollapsed ? 'justify-center px-2' : 'justify-start'}`}
+                onClick={() => setSelectedTab('reports')}
+                data-testid="nav-reports-analytics"
+                title={sidebarCollapsed ? 'Reports & Analytics' : ''}
+              >
+                <BarChart3 className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-3">Reports & Analytics</span>}
+              </Button>
+            </nav>
+
+            {/* User Profile Section - only show when expanded */}
+            {!sidebarCollapsed && (
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {user?.firstName?.[0] || 'S'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">{user?.role?.replace('_', ' ')}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // Add logout functionality if needed
+                      console.log('Logout clicked');
+                    }}
+                    className="p-1 rounded hover:bg-gray-200 transition-colors"
+                    title="Logout"
+                  >
+                    <LogOut className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Main Content */}
