@@ -4,7 +4,7 @@ import { db } from '../db';
 import { users, userSessions, auditLogs } from '@shared/schema';
 import { eq, and, gt } from 'drizzle-orm';
 
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   user?: {
     id: number;
     username: string;
