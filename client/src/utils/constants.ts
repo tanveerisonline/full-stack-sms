@@ -54,6 +54,25 @@ export const EXAM_TYPES = [
   { value: 'assignment', label: 'Assignment' }
 ];
 
+export const SUBJECTS = [
+  'Mathematics',
+  'Science',
+  'English',
+  'History',
+  'Geography', 
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'Computer Science',
+  'Art',
+  'Music',
+  'Physical Education',
+  'French',
+  'Spanish',
+  'Economics',
+  'Philosophy'
+];
+
 export const BOOK_CATEGORIES = [
   'Mathematics',
   'Science',

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
+import { GRADES, SUBJECTS } from '@/utils/constants';
 
 interface GradingModalProps {
   isOpen: boolean;
@@ -19,10 +20,12 @@ export function GradingModal({ isOpen, onClose, onSave, selectedStudent }: Gradi
   const { addToast } = useToast();
   const courses = dataService.getCourses();
   const assignments = dataService.getAssignments();
+  const students = dataService.getStudents();
   
   const [formData, setFormData] = useState({
     studentId: '',
     studentName: '',
+    studentGrade: '',
     subject: '',
     assignmentId: '',
     gradeType: 'assignment' as 'assignment' | 'exam' | 'quiz' | 'project',
@@ -34,6 +37,9 @@ export function GradingModal({ isOpen, onClose, onSave, selectedStudent }: Gradi
     examDate: new Date().toISOString().split('T')[0]
   });
 
+  const [studentSearch, setStudentSearch] = useState('');
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const gradeTypes = [
@@ -43,7 +49,7 @@ export function GradingModal({ isOpen, onClose, onSave, selectedStudent }: Gradi
     { value: 'project', label: 'Project' }
   ];
 
-  const subjects = Array.from(new Set(courses.map(c => c.subject)));
+  const subjects = courses.length > 0 ? Array.from(new Set(courses.map(c => c.subject))) : SUBJECTS;
 
   useEffect(() => {
     if (selectedStudent && isOpen) {
@@ -170,14 +176,47 @@ export function GradingModal({ isOpen, onClose, onSave, selectedStudent }: Gradi
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="studentName">Student *</Label>
-              <Input
-                id="studentName"
-                value={formData.studentName}
-                readOnly
-                className="bg-gray-50"
-                data-testid="input-student-name"
-              />
+              <Label htmlFor="studentSearch">Student *</Label>
+              <div className="relative">
+                <Input
+                  id="studentSearch"
+                  value={selectedStudent ? `${selectedStudent.firstName} ${selectedStudent.lastName}` : studentSearch}
+                  onChange={(e) => {
+                    setStudentSearch(e.target.value);
+                    setShowStudentDropdown(true);
+                  }}
+                  onFocus={() => setShowStudentDropdown(true)}
+                  placeholder="Search for student..."
+                  data-testid="input-student-search"
+                />
+                {showStudentDropdown && !selectedStudent && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {students
+                      .filter(student => 
+                        `${student.firstName} ${student.lastName}`.toLowerCase().includes(studentSearch.toLowerCase())
+                      )
+                      .map((student) => (
+                        <div
+                          key={student.id}
+                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              studentId: student.id,
+                              studentName: `${student.firstName} ${student.lastName}`,
+                              studentGrade: student.grade
+                            }));
+                            setStudentSearch('');
+                            setShowStudentDropdown(false);
+                          }}
+                        >
+                          <div className="font-medium">{student.firstName} {student.lastName}</div>
+                          <div className="text-sm text-gray-500">{student.grade} - ID: {student.rollNumber}</div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
               {errors.studentId && <p className="text-sm text-red-600 mt-1">{errors.studentId}</p>}
             </div>
 
@@ -199,7 +238,7 @@ export function GradingModal({ isOpen, onClose, onSave, selectedStudent }: Gradi
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="gradeType">Grade Type *</Label>
               <Select value={formData.gradeType} onValueChange={(value: any) => handleChange('gradeType', value)}>
@@ -215,6 +254,23 @@ export function GradingModal({ isOpen, onClose, onSave, selectedStudent }: Gradi
                 </SelectContent>
               </Select>
               {errors.gradeType && <p className="text-sm text-red-600 mt-1">{errors.gradeType}</p>}
+            </div>
+            
+            <div>
+              <Label htmlFor="studentGrade">Grade *</Label>
+              <Select value={formData.studentGrade} onValueChange={(value) => handleChange('studentGrade', value)}>
+                <SelectTrigger className={errors.studentGrade ? 'border-red-500' : ''} data-testid="select-student-grade">
+                  <SelectValue placeholder="Select grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GRADES.map((grade) => (
+                    <SelectItem key={grade} value={grade}>
+                      {grade}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.studentGrade && <p className="text-sm text-red-600 mt-1">{errors.studentGrade}</p>}
             </div>
 
             {formData.gradeType === 'assignment' && (

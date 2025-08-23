@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { GradingModal } from '@/components/GradingModal';
+import { StudentGradesModal } from '@/components/StudentGradesModal';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatDate } from '@/utils/formatters';
@@ -19,6 +20,7 @@ export default function Grading() {
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [grades, setGrades] = useState(dataService.getGrades());
   const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
+  const [isStudentGradesModalOpen, setIsStudentGradesModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   
   const students = dataService.getStudents();
@@ -73,6 +75,11 @@ export default function Grading() {
     setIsGradingModalOpen(true);
   };
 
+  const handleViewFullGrades = (student: any) => {
+    setSelectedStudent(student);
+    setIsStudentGradesModalOpen(true);
+  };
+
   const handleSaveGrade = (gradeData: any) => {
     setGrades(prev => [...prev, gradeData]);
   };
@@ -113,32 +120,6 @@ export default function Grading() {
       addToast('Report cards generated successfully!', 'success');
     } catch (error) {
       addToast('Failed to generate report cards.', 'error');
-    }
-  };
-
-  const handleViewFullGrades = (student: any) => {
-    const studentGrades = grades.filter(g => g.studentId === student.id);
-    
-    if (studentGrades.length === 0) {
-      addToast('No grades found for this student.', 'info');
-      return;
-    }
-
-    try {
-      const exportData = studentGrades.map(grade => ({
-        'Date': formatDate(grade.createdAt || new Date().toISOString()),
-        'Subject': grade.subject,
-        'Type': grade.gradeType || grade.type || 'Assessment',
-        'Score': `${grade.score || grade.marks || 0}/${grade.totalMarks || grade.total || 100}`,
-        'Percentage': `${grade.percentage || 0}%`,
-        'Grade': grade.grade,
-        'Comments': grade.comments || 'No comments'
-      }));
-      
-      exportToCSV(exportData, `${student.firstName}_${student.lastName}_grades`);
-      addToast(`${student.firstName}'s complete grade report exported!`, 'success');
-    } catch (error) {
-      addToast('Failed to export student grades.', 'error');
     }
   };
 
@@ -557,6 +538,13 @@ export default function Grading() {
         onClose={() => setIsGradingModalOpen(false)}
         onSave={handleSaveGrade}
         selectedStudent={selectedStudent}
+      />
+
+      {/* Student Grades Modal */}
+      <StudentGradesModal
+        isOpen={isStudentGradesModalOpen}
+        onClose={() => setIsStudentGradesModalOpen(false)}
+        student={selectedStudent}
       />
     </div>
   );

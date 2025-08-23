@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
-import { GRADES } from '@/utils/constants';
+import { GRADES, SUBJECTS } from '@/utils/constants';
 
 interface ClassModalProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const subjects = Array.from(new Set(courses.map(c => c.subject)));
+  const subjects = courses.length > 0 ? Array.from(new Set(courses.map(c => c.subject))) : SUBJECTS;
   const rooms = [
     'Room 101', 'Room 102', 'Room 103', 'Room 201', 'Room 202', 'Room 203',
     'Laboratory A', 'Laboratory B', 'Computer Lab', 'Library', 'Auditorium',

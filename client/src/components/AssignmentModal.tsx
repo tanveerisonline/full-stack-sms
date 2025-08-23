@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
-import { GRADES } from '@/utils/constants';
+import { GRADES, SUBJECTS } from '@/utils/constants';
 
 interface Assignment {
   id: string;
@@ -48,7 +48,7 @@ export function AssignmentModal({ assignment, isOpen, onClose, onSave }: Assignm
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const subjects = Array.from(new Set(courses.map(c => c.subject)));
+  const subjects = courses.length > 0 ? Array.from(new Set(courses.map(c => c.subject))) : SUBJECTS;
 
   useEffect(() => {
     if (assignment) {

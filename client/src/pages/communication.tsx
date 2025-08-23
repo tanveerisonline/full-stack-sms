@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmailModal } from '@/components/EmailModal';
 import { SMSModal } from '@/components/SMSModal';
 import { NotificationModal } from '@/components/NotificationModal';
+import { MessageTemplateModal } from '@/components/MessageTemplateModal';
 import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatTimeAgo } from '@/utils/formatters';
@@ -21,6 +22,8 @@ export default function Communication() {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isSMSModalOpen, setIsSMSModalOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<'parent-teacher' | 'exam-schedule' | 'holiday' | null>(null);
   const [announcementForm, setAnnouncementForm] = useState<{
     title: string;
     content: string;
@@ -392,15 +395,36 @@ export default function Communication() {
               <CardTitle>Message Templates</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+              <div 
+                className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                onClick={() => {
+                  setSelectedTemplate('parent-teacher');
+                  setIsTemplateModalOpen(true);
+                }}
+                data-testid="template-parent-teacher"
+              >
                 <h5 className="font-medium text-slate-800">Parent-Teacher Meeting</h5>
                 <p className="text-sm text-slate-600">Template for meeting notifications</p>
               </div>
-              <div className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+              <div 
+                className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                onClick={() => {
+                  setSelectedTemplate('exam-schedule');
+                  setIsTemplateModalOpen(true);
+                }}
+                data-testid="template-exam-schedule"
+              >
                 <h5 className="font-medium text-slate-800">Exam Schedule</h5>
                 <p className="text-sm text-slate-600">Template for exam announcements</p>
               </div>
-              <div className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+              <div 
+                className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                onClick={() => {
+                  setSelectedTemplate('holiday');
+                  setIsTemplateModalOpen(true);
+                }}
+                data-testid="template-holiday"
+              >
                 <h5 className="font-medium text-slate-800">Holiday Notice</h5>
                 <p className="text-sm text-slate-600">Template for holiday announcements</p>
               </div>
@@ -445,6 +469,15 @@ export default function Communication() {
       <NotificationModal 
         isOpen={isNotificationModalOpen}
         onClose={() => setIsNotificationModalOpen(false)}
+      />
+      
+      <MessageTemplateModal 
+        isOpen={isTemplateModalOpen}
+        onClose={() => {
+          setIsTemplateModalOpen(false);
+          setSelectedTemplate(null);
+        }}
+        templateType={selectedTemplate}
       />
     </div>
   );

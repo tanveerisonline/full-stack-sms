@@ -8,6 +8,8 @@ import { useToast } from '@/components/Common/Toast';
 import { dataService } from '@/services/dataService';
 import { formatDate } from '@/utils/formatters';
 import { BOOK_CATEGORIES } from '@/utils/constants';
+import { BookModal } from '@/components/BookModal';
+import { IssueBookModal } from '@/components/IssueBookModal';
 import { Plus, Search, BookOpen, Users, Clock, AlertCircle, Download, CornerDownLeft } from 'lucide-react';
 
 export default function Library() {
@@ -16,9 +18,14 @@ export default function Library() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('books');
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<any>(null);
+  const [booksData, setBooksData] = useState(dataService.getBooks());
+  const [issuesData, setIssuesData] = useState(dataService.getBookIssues());
 
-  const books = dataService.getBooks();
-  const bookIssues = dataService.getBookIssues();
+  const books = booksData;
+  const bookIssues = issuesData;
   const students = dataService.getStudents();
 
   const filteredBooks = books.filter(book => {
@@ -81,11 +88,40 @@ export default function Library() {
   };
 
   const handleAddBook = () => {
-    addToast('Book addition feature coming soon!', 'info');
+    setSelectedBook(null);
+    setIsBookModalOpen(true);
+  };
+
+  const handleEditBook = (book: any) => {
+    setSelectedBook(book);
+    setIsBookModalOpen(true);
+  };
+
+  const handleDeleteBook = (bookId: string) => {
+    setBooksData(prev => prev.filter(b => b.id !== bookId));
+    addToast('Book deleted successfully!', 'success');
+  };
+
+  const handleSaveBook = (bookData: any) => {
+    if (selectedBook) {
+      setBooksData(prev => prev.map(b => b.id === bookData.id ? bookData : b));
+    } else {
+      setBooksData(prev => [...prev, bookData]);
+    }
   };
 
   const handleIssueBook = () => {
-    addToast('Book issue feature coming soon!', 'info');
+    setIsIssueModalOpen(true);
+  };
+
+  const handleSaveIssue = (issueData: any) => {
+    setIssuesData(prev => [...prev, issueData]);
+    // Decrease available copies
+    setBooksData(prev => prev.map(book => 
+      book.id === issueData.bookId 
+        ? { ...book, availableCopies: (book.availableCopies || 1) - 1 }
+        : book
+    ));
   };
 
   const handleReturnBook = (issueId: string) => {
@@ -316,14 +352,22 @@ export default function Library() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm" data-testid={`button-edit-book-${book.id}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleEditBook(book)}
+                              data-testid={`button-edit-book-${book.id}`}
+                            >
                               Edit
                             </Button>
-                            {book.available > 0 && (
-                              <Button size="sm" data-testid={`button-issue-book-${book.id}`}>
-                                Issue
-                              </Button>
-                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDeleteBook(book.id)}
+                              data-testid={`button-delete-book-${book.id}`}
+                            >
+                              Delete
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -421,6 +465,20 @@ export default function Library() {
           </CardContent>
         </Card>
       )}
+      {/* Book Modal */}
+      <BookModal
+        isOpen={isBookModalOpen}
+        onClose={() => setIsBookModalOpen(false)}
+        onSave={handleSaveBook}
+        book={selectedBook}
+      />
+
+      {/* Issue Book Modal */}
+      <IssueBookModal
+        isOpen={isIssueModalOpen}
+        onClose={() => setIsIssueModalOpen(false)}
+        onSave={handleSaveIssue}
+      />
     </div>
   );
 }
