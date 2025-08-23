@@ -5,26 +5,30 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CourseModal } from '@/components/CourseModal';
 import { useToast } from '@/components/Common/Toast';
-import { dataService } from '@/services/dataService';
+import { useCourses } from '@/hooks/useCourses';
+import { useTeachers } from '@/hooks/useTeachers';
 import { formatDate } from '@/utils/formatters';
 import { exportToCSV } from '@/utils/csvExport';
 import { Plus, Search, BookOpen, Clock, Users, Award, Download, Edit, Trash2 } from 'lucide-react';
+import type { Class } from '@shared/schema';
 
 export default function Curriculum() {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [courses, setCourses] = useState(dataService.getCourses());
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Class | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const teachers = dataService.getTeachers();
+  
+  const { courses, isLoading: coursesLoading, addCourse, updateCourse, deleteCourse } = useCourses();
+  const { teachers, isLoading: teachersLoading } = useTeachers();
 
   const filteredCourses = courses.filter(course =>
     course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.subject.toLowerCase().includes(searchTerm.toLowerCase())
+    course.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.grade.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getTeacherName = (teacherId: string) => {
+  const getTeacherName = (teacherId: number | null) => {
+    if (!teacherId) return 'Unassigned';
     const teacher = teachers.find(t => t.id === teacherId);
     return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned';
   };
@@ -39,36 +43,49 @@ export default function Curriculum() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteCourse = (courseId: string) => {
+  const handleDeleteCourse = async (courseId: number) => {
     if (confirm('Are you sure you want to delete this course?')) {
-      setCourses(prev => prev.filter(c => c.id !== courseId));
-      addToast('Course deleted successfully!', 'success');
+      try {
+        await deleteCourse(courseId);
+        addToast('Course deleted successfully!', 'success');
+      } catch (error) {
+        addToast('Failed to delete course', 'error');
+      }
     }
   };
 
-  const handleSaveCourse = (courseData: any) => {
-    if (selectedCourse) {
-      // Update existing course
-      setCourses(prev => prev.map(c => c.id === courseData.id ? courseData : c));
-    } else {
-      // Add new course
-      setCourses(prev => [...prev, courseData]);
+  const handleSaveCourse = async (courseData: any) => {
+    try {
+      if (selectedCourse) {
+        // Update existing course
+        await updateCourse(selectedCourse.id, courseData);
+        addToast('Course updated successfully!', 'success');
+      } else {
+        // Add new course
+        await addCourse(courseData);
+        addToast('Course added successfully!', 'success');
+      }
+      setIsModalOpen(false);
+      setSelectedCourse(null);
+    } catch (error) {
+      addToast('Failed to save course', 'error');
     }
   };
 
   const handleExportCourses = () => {
     try {
       const exportData = filteredCourses.map(course => ({
-        'Course Code': course.code,
         'Course Name': course.name,
         'Subject': course.subject,
         'Grade': course.grade,
-        'Credits': course.credits,
-        'Duration (hours)': course.duration,
+        'Section': course.section || 'N/A',
+        'Room': course.room || 'N/A',
+        'Max Students': course.maxStudents || 0,
+        'Current Students': course.currentStudents || 0,
         'Instructor': getTeacherName(course.teacherId),
         'Status': course.status,
-        'Description': course.description,
-        'Created Date': formatDate(course.createdAt)
+        'Schedule': course.schedule || 'TBD',
+        'Created Date': formatDate(course.createdAt.toISOString())
       }));
       
       exportToCSV(exportData, 'courses_list');
@@ -138,13 +155,13 @@ export default function Curriculum() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Total Credits</p>
+                <p className="text-sm font-medium text-slate-600">Total Students</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {courses.reduce((sum, course) => sum + course.credits, 0)}
+                  {courses.reduce((sum, course) => sum + (course.currentStudents || 0), 0)}
                 </p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-purple-600" />
+                <Users className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -171,7 +188,7 @@ export default function Curriculum() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <Input
-              placeholder="Search courses by name, code, or subject..."
+              placeholder="Search classes by name, subject, or grade..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -201,8 +218,8 @@ export default function Curriculum() {
                     <CardTitle className="text-lg" data-testid={`text-course-name-${course.id}`}>
                       {course.name}
                     </CardTitle>
-                    <p className="text-sm text-slate-600 mt-1" data-testid={`text-course-code-${course.id}`}>
-                      {course.code}
+                    <p className="text-sm text-slate-600 mt-1" data-testid={`text-course-subject-${course.id}`}>
+                      {course.subject}
                     </p>
                   </div>
                   <Badge 
@@ -215,8 +232,8 @@ export default function Curriculum() {
               </CardHeader>
               
               <CardContent className="space-y-4">
-                <p className="text-sm text-slate-600" data-testid={`text-course-description-${course.id}`}>
-                  {course.description}
+                <p className="text-sm text-slate-600" data-testid={`text-course-schedule-${course.id}`}>
+                  {course.schedule || 'Schedule TBD'}
                 </p>
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -227,9 +244,9 @@ export default function Curriculum() {
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-700">Credits</p>
-                    <p className="text-slate-600" data-testid={`text-course-credits-${course.id}`}>
-                      {course.credits}
+                    <p className="font-medium text-slate-700">Section</p>
+                    <p className="text-slate-600" data-testid={`text-course-section-${course.id}`}>
+                      {course.section || 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -239,9 +256,15 @@ export default function Curriculum() {
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-700">Duration</p>
-                    <p className="text-slate-600" data-testid={`text-course-duration-${course.id}`}>
-                      {course.duration}h
+                    <p className="font-medium text-slate-700">Room</p>
+                    <p className="text-slate-600" data-testid={`text-course-room-${course.id}`}>
+                      {course.room || 'TBD'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-700">Capacity</p>
+                    <p className="text-slate-600" data-testid={`text-course-capacity-${course.id}`}>
+                      {course.currentStudents || 0}/{course.maxStudents || 0}
                     </p>
                   </div>
                 </div>

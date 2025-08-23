@@ -148,6 +148,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Classes routes
+  app.get("/api/classes", async (req: Request, res: Response) => {
+    try {
+      const classes = await storage.getClasses();
+      res.json(classes);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.get("/api/classes/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const classItem = await storage.getClass(id);
+      if (!classItem) {
+        return res.status(404).json({ error: "Class not found" });
+      }
+      res.json(classItem);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.post("/api/classes", async (req: Request, res: Response) => {
+    try {
+      const validatedClass = insertClassSchema.parse(req.body);
+      const classItem = await storage.createClass(validatedClass);
+      res.status(201).json(classItem);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.put("/api/classes/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedClass = insertClassSchema.partial().parse(req.body);
+      const classItem = await storage.updateClass(id, validatedClass);
+      res.json(classItem);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.delete("/api/classes/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteClass(id);
+      res.status(204).send();
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
   // Books routes
   app.get("/api/books", async (req: Request, res: Response) => {
     try {
