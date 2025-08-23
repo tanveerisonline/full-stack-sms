@@ -1,81 +1,57 @@
-import { useState, useEffect } from 'react';
-import { dataService } from '@/services/dataService';
-import { Student } from '@/types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { generateStudentId } from '@/utils/formatters';
+import type { Student } from '@shared/schema';
+import type { InsertStudent } from '@shared/schema';
 
 export function useStudents() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadStudents();
-  }, []);
+  // Query for fetching all students
+  const { data: students = [], isLoading, error, refetch } = useQuery<Student[]>({
+    queryKey: ['/api/students'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const loadStudents = () => {
-    try {
-      const studentsData = dataService.getStudents();
-      setStudents(studentsData);
-    } catch (error) {
-      console.error('Error loading students:', error);
-    }
-  };
-
-  const addStudent = async (studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt' | 'rollNumber'>) => {
-    setIsLoading(true);
-    try {
+  // Mutation for creating a student
+  const createMutation = useMutation({
+    mutationFn: async (studentData: Omit<InsertStudent, 'rollNumber'>) => {
       const rollNumber = generateStudentId(students.length);
-      const newStudent = dataService.addStudent({
+      const response = await apiRequest('POST', '/api/students', {
         ...studentData,
         rollNumber,
         status: 'active'
       });
-      setStudents(prev => [...prev, newStudent]);
-      return newStudent;
-    } catch (error) {
-      console.error('Error adding student:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+    },
+  });
 
-  const updateStudent = async (id: string, updates: Partial<Student>) => {
-    setIsLoading(true);
-    try {
-      const updatedStudent = dataService.updateStudent(id, updates);
-      if (updatedStudent) {
-        setStudents(prev => prev.map(student => 
-          student.id === id ? updatedStudent : student
-        ));
-        return updatedStudent;
-      }
-      throw new Error('Student not found');
-    } catch (error) {
-      console.error('Error updating student:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Mutation for updating a student
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<InsertStudent> }) => {
+      const response = await apiRequest('PUT', `/api/students/${id}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+    },
+  });
 
-  const deleteStudent = async (id: string) => {
-    setIsLoading(true);
-    try {
-      const success = dataService.deleteStudent(id);
-      if (success) {
-        setStudents(prev => prev.filter(student => student.id !== id));
-      } else {
-        throw new Error('Failed to delete student');
-      }
-    } catch (error) {
-      console.error('Error deleting student:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Mutation for deleting a student
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest('DELETE', `/api/students/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+    },
+  });
 
-  const getStudentById = (id: string) => {
+  // Helper functions
+  const getStudentById = (id: number) => {
     return students.find(student => student.id === id);
   };
 
@@ -88,20 +64,22 @@ export function useStudents() {
     return students.filter(student =>
       student.firstName.toLowerCase().includes(lowercaseQuery) ||
       student.lastName.toLowerCase().includes(lowercaseQuery) ||
-      student.email.toLowerCase().includes(lowercaseQuery) ||
+      student.email?.toLowerCase().includes(lowercaseQuery) ||
       student.rollNumber.toLowerCase().includes(lowercaseQuery)
     );
   };
 
   return {
     students,
-    isLoading,
-    addStudent,
-    updateStudent,
-    deleteStudent,
+    isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+    error,
+    addStudent: createMutation.mutateAsync,
+    updateStudent: (id: number, updates: Partial<InsertStudent>) => 
+      updateMutation.mutateAsync({ id, updates }),
+    deleteStudent: deleteMutation.mutateAsync,
     getStudentById,
     getStudentsByGrade,
     searchStudents,
-    refreshStudents: loadStudents
+    refreshStudents: refetch
   };
 }
