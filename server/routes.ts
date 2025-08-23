@@ -202,6 +202,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Timetable routes
+  app.get("/api/timetable", async (req: Request, res: Response) => {
+    try {
+      const timetable = await storage.getTimetable();
+      res.json(timetable);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.get("/api/timetable/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const entry = await storage.getTimetableEntry(id);
+      if (!entry) {
+        return res.status(404).json({ error: "Timetable entry not found" });
+      }
+      res.json(entry);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.post("/api/timetable", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertTimetableSchema.parse(req.body);
+      const entry = await storage.createTimetableEntry(validatedData);
+      res.status(201).json(entry);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.put("/api/timetable/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertTimetableSchema.partial().parse(req.body);
+      const entry = await storage.updateTimetableEntry(id, validatedData);
+      res.json(entry);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.delete("/api/timetable/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteTimetableEntry(id);
+      res.status(204).send();
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
   // Books routes
   app.get("/api/books", async (req: Request, res: Response) => {
     try {

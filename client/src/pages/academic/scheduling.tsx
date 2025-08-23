@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ClassModal } from '@/components/ClassModal';
 import { useToast } from '@/components/Common/Toast';
-import { dataService } from '@/services/dataService';
+import { useTimetable, useCreateTimetableEntry, useUpdateTimetableEntry, useDeleteTimetableEntry } from '@/hooks/useTimetable';
+import { useTeachers } from '@/hooks/useTeachers';
 import { exportToCSV } from '@/utils/csvExport';
 import { GRADES } from '@/utils/constants';
 import { Plus, Calendar, Clock, MapPin, User, Download } from 'lucide-react';
+import type { Timetable, InsertTimetable } from '@shared/schema';
 
 const DAYS_OF_WEEK = [
   'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
@@ -23,54 +25,84 @@ export default function Scheduling() {
   const { addToast } = useToast();
   const [selectedGrade, setSelectedGrade] = useState('Grade 10');
   const [selectedSection, setSelectedSection] = useState('A');
-  const [schedules, setSchedules] = useState(dataService.getClassSchedules());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | undefined>();
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
+  const [editingEntry, setEditingEntry] = useState<Timetable | null>(null);
   
-  const courses = dataService.getCourses();
-  const teachers = dataService.getTeachers();
+  const { data: timetableData = [], isLoading } = useTimetable();
+  const { teachers } = useTeachers();
+  const createEntry = useCreateTimetableEntry();
+  const updateEntry = useUpdateTimetableEntry();
+  const deleteEntry = useDeleteTimetableEntry();
 
-  const filteredSchedules = schedules.filter(schedule => 
+  const filteredSchedules = timetableData.filter(schedule => 
     schedule.grade === selectedGrade && schedule.section === selectedSection
   );
 
-  const getTeacherName = (teacherId: string) => {
-    const teacher = teachers.find(t => t.id === teacherId);
+  const getTeacherName = (teacherId: number | null) => {
+    if (!teacherId) return 'TBA';
+    const teacher = teachers.find((t: any) => t.id === teacherId);
     return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'TBA';
   };
 
   const getScheduleForSlot = (dayOfWeek: number, timeSlot: string) => {
     const [startTime] = timeSlot.split(' - ');
     return filteredSchedules.find(schedule => 
-      schedule.dayOfWeek === dayOfWeek && schedule.startTime === startTime
+      parseInt(schedule.dayOfWeek) === dayOfWeek && schedule.startTime === startTime
     );
   };
 
   const handleAddClass = () => {
+    setEditingEntry(null);
     setSelectedDay(undefined);
     setSelectedTime(undefined);
     setIsModalOpen(true);
   };
 
   const handleCellClick = (dayOfWeek: number, timeSlot: string) => {
+    const existingEntry = getScheduleForSlot(dayOfWeek, timeSlot);
+    if (existingEntry) {
+      setEditingEntry(existingEntry);
+    } else {
+      setEditingEntry(null);
+    }
     setSelectedDay(dayOfWeek);
     setSelectedTime(timeSlot);
     setIsModalOpen(true);
   };
 
-  const handleSaveClass = (classData: any) => {
-    setSchedules(prev => [...prev, classData]);
+  const handleSaveClass = async (classData: InsertTimetable) => {
+    try {
+      if (editingEntry) {
+        await updateEntry.mutateAsync({ id: editingEntry.id, data: classData });
+        addToast('Class updated successfully!', 'success');
+      } else {
+        await createEntry.mutateAsync(classData);
+        addToast('Class scheduled successfully!', 'success');
+      }
+    } catch (error) {
+      addToast('Failed to save class. Please try again.', 'error');
+    }
+  };
+
+  const handleDeleteClass = async (id: number) => {
+    try {
+      await deleteEntry.mutateAsync(id);
+      addToast('Class deleted successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to delete class. Please try again.', 'error');
+    }
   };
 
   const handleExportSchedule = () => {
     try {
       const exportData = filteredSchedules.map(schedule => ({
-        'Day': DAYS_OF_WEEK[schedule.dayOfWeek],
+        'Day': DAYS_OF_WEEK[parseInt(schedule.dayOfWeek)],
         'Time': `${schedule.startTime} - ${schedule.endTime}`,
         'Subject': schedule.subject,
         'Teacher': getTeacherName(schedule.teacherId),
-        'Room': schedule.room,
+        'Room': schedule.room || 'TBA',
         'Grade': schedule.grade,
         'Section': schedule.section
       }));
@@ -81,6 +113,17 @@ export default function Scheduling() {
       addToast('Failed to export schedule.', 'error');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading timetable...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8" data-testid="scheduling-page">
@@ -141,7 +184,7 @@ export default function Scheduling() {
             </div>
             
             <div className="flex items-end">
-              <Button variant="outline" data-testid="button-export-schedule">
+              <Button variant="outline" onClick={handleExportSchedule} data-testid="button-export-schedule">
                 <Calendar className="w-4 h-4 mr-2" />
                 Export Schedule
               </Button>
@@ -197,7 +240,7 @@ export default function Scheduling() {
                               </div>
                               <div className="flex items-center text-xs text-blue-700">
                                 <MapPin className="w-3 h-3 mr-1" />
-                                {schedule.room}
+                                {schedule.room || 'TBA'}
                               </div>
                               <Badge 
                                 variant="outline" 
@@ -282,8 +325,10 @@ export default function Scheduling() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveClass}
+        onDelete={editingEntry ? () => handleDeleteClass(editingEntry.id) : undefined}
         selectedDay={selectedDay}
         selectedTime={selectedTime}
+        editingEntry={editingEntry}
       />
     </div>
   );

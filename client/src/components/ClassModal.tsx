@@ -5,37 +5,47 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/Common/Toast';
-import { dataService } from '@/services/dataService';
+import { useTeachers } from '@/hooks/useTeachers';
 import { GRADES, SUBJECTS } from '@/utils/constants';
+import type { Timetable, InsertTimetable } from '@shared/schema';
 
 interface ClassModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (classData: any) => void;
+  onSave: (classData: InsertTimetable) => void;
+  onDelete?: () => void;
   selectedDay?: number;
   selectedTime?: string;
+  editingEntry?: Timetable | null;
 }
 
-export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime }: ClassModalProps) {
+export function ClassModal({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  onDelete, 
+  selectedDay, 
+  selectedTime, 
+  editingEntry 
+}: ClassModalProps) {
   const { addToast } = useToast();
-  const teachers = dataService.getTeachers();
-  const courses = dataService.getCourses();
+  const { teachers } = useTeachers();
   
   const [formData, setFormData] = useState({
     subject: '',
-    teacherId: '',
+    teacherId: null as number | null,
     room: '',
     grade: 'Grade 10',
     section: 'A',
     dayOfWeek: selectedDay || 1,
     startTime: selectedTime?.split(' - ')[0] || '08:00',
     endTime: selectedTime?.split(' - ')[1] || '09:00',
-    status: 'scheduled' as const
+    period: 1,
+    status: 'active' as const
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const subjects = courses.length > 0 ? Array.from(new Set(courses.map(c => c.subject))) : SUBJECTS;
   const rooms = [
     'Room 101', 'Room 102', 'Room 103', 'Room 201', 'Room 202', 'Room 203',
     'Laboratory A', 'Laboratory B', 'Computer Lab', 'Library', 'Auditorium',
@@ -52,7 +62,20 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
   ];
 
   useEffect(() => {
-    if (selectedDay && selectedTime) {
+    if (editingEntry) {
+      setFormData({
+        subject: editingEntry.subject,
+        teacherId: editingEntry.teacherId,
+        room: editingEntry.room || '',
+        grade: editingEntry.grade,
+        section: editingEntry.section || 'A',
+        dayOfWeek: parseInt(editingEntry.dayOfWeek),
+        startTime: editingEntry.startTime,
+        endTime: editingEntry.endTime,
+        period: editingEntry.period,
+        status: editingEntry.status as 'active' | 'inactive'
+      });
+    } else if (selectedDay && selectedTime) {
       setFormData(prev => ({
         ...prev,
         dayOfWeek: selectedDay,
@@ -60,13 +83,12 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
         endTime: selectedTime.split(' - ')[1]
       }));
     }
-  }, [selectedDay, selectedTime]);
+  }, [editingEntry, selectedDay, selectedTime]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.subject) newErrors.subject = 'Subject is required';
-    if (!formData.teacherId) newErrors.teacherId = 'Teacher is required';
     if (!formData.room) newErrors.room = 'Room is required';
     if (!formData.grade) newErrors.grade = 'Grade is required';
 
@@ -82,15 +104,20 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
       return;
     }
 
-    const classData = {
-      ...formData,
-      id: `class_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    const classData: InsertTimetable = {
+      subject: formData.subject,
+      teacherId: formData.teacherId,
+      room: formData.room,
+      grade: formData.grade,
+      section: formData.section,
+      dayOfWeek: formData.dayOfWeek.toString(),
+      startTime: formData.startTime,
+      endTime: formData.endTime,
+      period: formData.period,
+      status: formData.status
     };
 
     onSave(classData);
-    addToast('Class scheduled successfully!', 'success');
     onClose();
   };
 
@@ -105,7 +132,9 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md" data-testid="class-modal">
         <DialogHeader>
-          <DialogTitle>Schedule New Class</DialogTitle>
+          <DialogTitle>
+            {editingEntry ? 'Edit Class' : 'Schedule New Class'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -116,7 +145,7 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
                 <SelectValue placeholder="Select subject" />
               </SelectTrigger>
               <SelectContent>
-                {subjects.map((subject) => (
+                {SUBJECTS.map((subject) => (
                   <SelectItem key={subject} value={subject}>
                     {subject}
                   </SelectItem>
@@ -127,20 +156,23 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
           </div>
 
           <div>
-            <Label htmlFor="classTeacher">Teacher *</Label>
-            <Select value={formData.teacherId} onValueChange={(value) => handleChange('teacherId', value)}>
-              <SelectTrigger className={errors.teacherId ? 'border-red-500' : ''} data-testid="select-class-teacher">
-                <SelectValue placeholder="Select teacher" />
+            <Label htmlFor="classTeacher">Teacher</Label>
+            <Select 
+              value={formData.teacherId?.toString() || 'none'} 
+              onValueChange={(value) => handleChange('teacherId', value === 'none' ? null : parseInt(value))}
+            >
+              <SelectTrigger data-testid="select-class-teacher">
+                <SelectValue placeholder="Select teacher (optional)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">No teacher assigned</SelectItem>
                 {teachers.map((teacher) => (
-                  <SelectItem key={teacher.id} value={teacher.id}>
+                  <SelectItem key={teacher.id} value={teacher.id.toString()}>
                     {teacher.firstName} {teacher.lastName}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {errors.teacherId && <p className="text-sm text-red-600 mt-1">{errors.teacherId}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -232,13 +264,28 @@ export function ClassModal({ isOpen, onClose, onSave, selectedDay, selectedTime 
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} data-testid="button-class-cancel">
-              Cancel
-            </Button>
-            <Button type="submit" data-testid="button-class-save">
-              Schedule Class
-            </Button>
+          <div className="flex justify-between space-x-2 pt-4">
+            {onDelete && editingEntry && (
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={() => {
+                  onDelete();
+                  onClose();
+                }}
+                data-testid="button-delete-class"
+              >
+                Delete
+              </Button>
+            )}
+            <div className="flex space-x-2 ml-auto">
+              <Button type="button" variant="outline" onClick={onClose} data-testid="button-class-cancel">
+                Cancel
+              </Button>
+              <Button type="submit" data-testid="button-class-save">
+                {editingEntry ? 'Update Class' : 'Schedule Class'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
