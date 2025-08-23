@@ -6,44 +6,35 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/Common/Toast';
-import { dataService } from '@/services/dataService';
+import { useTeachers } from '@/hooks/useTeachers';
+import { useCourses } from '@/hooks/useCourses';
 import { GRADES, SUBJECTS } from '@/utils/constants';
-
-interface Assignment {
-  id: string;
-  title: string;
-  description: string;
-  subject: string;
-  grade: string;
-  totalMarks: number;
-  dueDate: string;
-  teacherId: string;
-  status: 'published' | 'draft' | 'closed';
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Assignment, InsertAssignment } from '@shared/schema';
 
 interface AssignmentModalProps {
   assignment?: Assignment | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (assignment: any) => void;
+  onSave: (assignment: InsertAssignment) => void;
 }
 
 export function AssignmentModal({ assignment, isOpen, onClose, onSave }: AssignmentModalProps) {
   const { addToast } = useToast();
-  const teachers = dataService.getTeachers();
-  const courses = dataService.getCourses();
+  const { teachers = [] } = useTeachers();
+  const { courses = [] } = useCourses();
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     subject: '',
     grade: '',
+    section: '',
     totalMarks: 100,
     dueDate: '',
-    teacherId: '',
-    status: 'draft' as 'published' | 'draft' | 'closed'
+    teacherId: null as number | null,
+    status: 'active' as const,
+    instructions: '',
+    attachments: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,26 +45,32 @@ export function AssignmentModal({ assignment, isOpen, onClose, onSave }: Assignm
     if (assignment) {
       setFormData({
         title: assignment.title,
-        description: assignment.description,
+        description: assignment.description || '',
         subject: assignment.subject,
         grade: assignment.grade,
-        totalMarks: assignment.totalMarks,
-        dueDate: assignment.dueDate.split('T')[0], // Convert to date format
+        section: assignment.section || '',
+        totalMarks: assignment.totalMarks || 100,
+        dueDate: assignment.dueDate,
         teacherId: assignment.teacherId,
-        status: assignment.status
+        status: 'active' as const,
+        instructions: assignment.instructions || '',
+        attachments: assignment.attachments || ''
       });
     } else {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 7);
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
       setFormData({
         title: '',
         description: '',
         subject: '',
         grade: '',
+        section: '',
         totalMarks: 100,
-        dueDate: tomorrow.toISOString().split('T')[0],
-        teacherId: '',
-        status: 'draft'
+        dueDate: nextWeek.toISOString().split('T')[0],
+        teacherId: null,
+        status: 'active',
+        instructions: '',
+        attachments: ''
       });
     }
     setErrors({});
@@ -235,13 +232,13 @@ export function AssignmentModal({ assignment, isOpen, onClose, onSave }: Assignm
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="assignmentTeacher">Teacher *</Label>
-              <Select value={formData.teacherId} onValueChange={(value) => handleChange('teacherId', value)}>
+              <Select value={formData.teacherId?.toString() || ''} onValueChange={(value) => handleChange('teacherId', parseInt(value))}>
                 <SelectTrigger className={errors.teacherId ? 'border-red-500' : ''} data-testid="select-assignment-teacher">
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
                   {teachers.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
+                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
                       {teacher.firstName} {teacher.lastName}
                     </SelectItem>
                   ))}
@@ -252,14 +249,13 @@ export function AssignmentModal({ assignment, isOpen, onClose, onSave }: Assignm
 
             <div>
               <Label htmlFor="assignmentStatus">Status</Label>
-              <Select value={formData.status} onValueChange={(value: 'published' | 'draft' | 'closed') => handleChange('status', value)}>
+              <Select value={formData.status} onValueChange={(value: 'active' | 'inactive') => handleChange('status', value)}>
                 <SelectTrigger data-testid="select-assignment-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -6,22 +6,30 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AssignmentModal } from '@/components/AssignmentModal';
 import { useToast } from '@/components/Common/Toast';
-import { dataService } from '@/services/dataService';
+import { useAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment } from '@/hooks/useAssignments';
+import { useTeachers } from '@/hooks/useTeachers';
 import { formatDate, formatDateTime } from '@/utils/formatters';
 import { exportToCSV } from '@/utils/csvExport';
 import { GRADES } from '@/utils/constants';
-import { Plus, Search, FileText, Calendar, CheckCircle, Clock, AlertCircle, Download, Edit } from 'lucide-react';
+import { Plus, Search, FileText, Calendar, CheckCircle, Clock, AlertCircle, Download, Edit, Loader2 } from 'lucide-react';
+import type { Assignment, InsertAssignment } from '@shared/schema';
 
 export default function Assignments() {
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [gradeFilter, setGradeFilter] = useState('all');
-  const [assignments, setAssignments] = useState(dataService.getAssignments());
-  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const teachers = dataService.getTeachers();
+  // API hooks
+  const { data: assignments = [], isLoading: assignmentsLoading } = useAssignments();
+  const { teachers = [], isLoading: teachersLoading } = useTeachers();
+  const createAssignmentMutation = useCreateAssignment();
+  const updateAssignmentMutation = useUpdateAssignment();
+  const deleteAssignmentMutation = useDeleteAssignment();
+  
+  const isLoading = assignmentsLoading || teachersLoading;
 
   const filteredAssignments = assignments.filter(assignment => {
     const matchesSearch = 
@@ -33,7 +41,8 @@ export default function Assignments() {
     return matchesSearch && matchesStatus && matchesGrade;
   });
 
-  const getTeacherName = (teacherId: string) => {
+  const getTeacherName = (teacherId: number | null) => {
+    if (!teacherId) return 'No teacher assigned';
     const teacher = teachers.find(t => t.id === teacherId);
     return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unknown';
   };
@@ -79,11 +88,31 @@ export default function Assignments() {
     setIsModalOpen(true);
   };
 
-  const handleSaveAssignment = (assignmentData: any) => {
-    if (selectedAssignment) {
-      setAssignments(prev => prev.map(a => a.id === assignmentData.id ? assignmentData : a));
-    } else {
-      setAssignments(prev => [...prev, assignmentData]);
+  const handleSaveAssignment = async (assignmentData: InsertAssignment) => {
+    try {
+      if (selectedAssignment) {
+        await updateAssignmentMutation.mutateAsync({ 
+          id: selectedAssignment.id, 
+          data: assignmentData 
+        });
+        addToast('Assignment updated successfully!', 'success');
+      } else {
+        await createAssignmentMutation.mutateAsync(assignmentData);
+        addToast('Assignment created successfully!', 'success');
+      }
+      setIsModalOpen(false);
+      setSelectedAssignment(null);
+    } catch (error) {
+      addToast('Failed to save assignment.', 'error');
+    }
+  };
+  
+  const handleDeleteAssignment = async (assignmentId: number) => {
+    try {
+      await deleteAssignmentMutation.mutateAsync(assignmentId);
+      addToast('Assignment deleted successfully!', 'success');
+    } catch (error) {
+      addToast('Failed to delete assignment.', 'error');
     }
   };
 
@@ -93,12 +122,12 @@ export default function Assignments() {
         'Title': assignment.title,
         'Subject': assignment.subject,
         'Grade': assignment.grade,
-        'Total Marks': assignment.totalMarks,
-        'Due Date': formatDate(assignment.dueDate),
+        'Total Marks': assignment.totalMarks || 0,
+        'Due Date': assignment.dueDate,
         'Status': assignment.status,
         'Teacher': getTeacherName(assignment.teacherId),
-        'Description': assignment.description,
-        'Created Date': formatDate(assignment.createdAt)
+        'Description': assignment.description || '',
+        'Created Date': assignment.createdAt ? new Date(assignment.createdAt).toLocaleDateString() : ''
       }));
       
       exportToCSV(exportData, 'assignments_list');
@@ -110,10 +139,20 @@ export default function Assignments() {
 
   const stats = {
     total: assignments.length,
-    published: assignments.filter(a => a.status === 'published').length,
-    draft: assignments.filter(a => a.status === 'draft').length,
+    active: assignments.filter(a => a.status === 'active').length,
+    inactive: assignments.filter(a => a.status === 'inactive').length,
     overdue: assignments.filter(a => isOverdue(a.dueDate, a.status)).length,
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="ml-2">Loading assignments...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8" data-testid="assignments-page">
@@ -159,8 +198,8 @@ export default function Assignments() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Published</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.published}</p>
+                <p className="text-sm font-medium text-slate-600">Active</p>
+                <p className="text-3xl font-bold text-slate-800">{stats.active}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -173,8 +212,8 @@ export default function Assignments() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Draft</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.draft}</p>
+                <p className="text-sm font-medium text-slate-600">Inactive</p>
+                <p className="text-3xl font-bold text-slate-800">{stats.inactive}</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <Clock className="w-6 h-6 text-yellow-600" />
@@ -308,10 +347,10 @@ export default function Assignments() {
                     <div className="mt-4 pt-4 border-t border-slate-200">
                       <div className="flex items-center justify-between text-sm text-slate-500">
                         <span>
-                          Created by {getTeacherName(assignment.teacherId)} on {formatDate(assignment.createdAt)}
+                          Created by {getTeacherName(assignment.teacherId)} on {assignment.createdAt ? new Date(assignment.createdAt).toLocaleDateString() : ''}
                         </span>
                         <span>
-                          Updated {formatDateTime(assignment.updatedAt)}
+                          Updated {assignment.updatedAt ? new Date(assignment.updatedAt).toLocaleDateString() : ''}
                         </span>
                       </div>
                     </div>
