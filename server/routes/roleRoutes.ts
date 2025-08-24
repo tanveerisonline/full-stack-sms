@@ -198,7 +198,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Delete role
+// Delete role (permanently)
 router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const roleId = parseInt(req.params.id);
@@ -213,13 +213,10 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({ message: 'Role not found' });
     }
 
-    // Check if role is in use by any users
-    // This would require checking the users table, but we'll implement a soft delete approach
-    const [deletedRole] = await db
-      .update(roles)
-      .set({ isActive: false })
-      .where(eq(roles.id, roleId))
-      .returning();
+    // Actually delete the role
+    await db
+      .delete(roles)
+      .where(eq(roles.id, roleId));
 
     await logAuditEvent(
       req.user!.id,
@@ -231,10 +228,55 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       req.get('user-agent')
     );
 
-    res.json({ message: 'Role deactivated successfully', role: deletedRole });
+    res.json({ message: 'Role deleted successfully' });
   } catch (error) {
     console.error('Error deleting role:', error);
     res.status(500).json({ message: 'Failed to delete role' });
+  }
+});
+
+// Toggle role active status
+router.patch('/:id/toggle-status', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const roleId = parseInt(req.params.id);
+
+    // Get current role
+    const [role] = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.id, roleId));
+
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    // Toggle active status
+    const [updatedRole] = await db
+      .update(roles)
+      .set({ isActive: !role.isActive })
+      .where(eq(roles.id, roleId))
+      .returning();
+
+    await logAuditEvent(
+      req.user!.id,
+      'toggle_role_status',
+      'role',
+      roleId.toString(),
+      { 
+        oldStatus: role.isActive,
+        newStatus: updatedRole.isActive
+      },
+      req.ip,
+      req.get('user-agent')
+    );
+
+    res.json({ 
+      message: `Role ${updatedRole.isActive ? 'activated' : 'deactivated'} successfully`, 
+      role: updatedRole 
+    });
+  } catch (error) {
+    console.error('Error toggling role status:', error);
+    res.status(500).json({ message: 'Failed to toggle role status' });
   }
 });
 

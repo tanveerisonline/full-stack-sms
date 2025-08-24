@@ -40,6 +40,7 @@ export default function RoleManagement() {
     description: '',
     permissions: [] as string[],
   });
+  const [selectAllPermissions, setSelectAllPermissions] = useState(false);
 
   // Fetch roles
   const { data: rolesData, isLoading: rolesLoading } = useQuery({
@@ -126,12 +127,34 @@ export default function RoleManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
       queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
-      toast({ title: 'Success', description: 'Role deactivated successfully!' });
+      toast({ title: 'Success', description: 'Role deleted successfully!' });
     },
     onError: (error: any) => {
       toast({ 
         title: 'Error', 
         description: error.message || 'Failed to delete role',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  // Toggle role status mutation
+  const toggleRoleStatusMutation = useMutation({
+    mutationFn: async (roleId: number) => {
+      const response = await apiRequest(`/api/super-admin/roles/${roleId}/toggle-status`, {
+        method: 'PATCH',
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
+      queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
+      toast({ title: 'Success', description: 'Role status updated successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Error', 
+        description: error.message || 'Failed to update role status',
         variant: 'destructive'
       });
     },
@@ -171,9 +194,13 @@ export default function RoleManagement() {
   };
 
   const handleDeleteRole = (roleId: number) => {
-    if (confirm('Are you sure you want to deactivate this role? This action will make the role unavailable for assignment.')) {
+    if (confirm('Are you sure you want to permanently delete this role? This action cannot be undone.')) {
       deleteRoleMutation.mutate(roleId);
     }
+  };
+
+  const handleToggleRoleStatus = (roleId: number) => {
+    toggleRoleStatusMutation.mutate(roleId);
   };
 
   const handleEditRole = (role: Role) => {
@@ -199,40 +226,134 @@ export default function RoleManagement() {
     }
   };
 
+  const handleSelectAllPermissions = (isCreating: boolean = false) => {
+    const allPermissions = permissionsData?.permissions || [];
+    if (isCreating) {
+      if (newRole.permissions.length === allPermissions.length) {
+        setNewRole(prev => ({ ...prev, permissions: [] }));
+        setSelectAllPermissions(false);
+      } else {
+        setNewRole(prev => ({ ...prev, permissions: [...allPermissions] }));
+        setSelectAllPermissions(true);
+      }
+    } else if (editingRole) {
+      if (editingRole.permissions.length === allPermissions.length) {
+        setEditingRole(prev => prev ? ({ ...prev, permissions: [] }) : null);
+      } else {
+        setEditingRole(prev => prev ? ({ ...prev, permissions: [...allPermissions] }) : null);
+      }
+    }
+  };
+
+  const handleSelectCategoryPermissions = (categoryPermissions: string[], isCreating: boolean = false) => {
+    if (isCreating) {
+      const hasAllCategoryPerms = categoryPermissions.every(perm => newRole.permissions.includes(perm));
+      if (hasAllCategoryPerms) {
+        setNewRole(prev => ({
+          ...prev,
+          permissions: prev.permissions.filter(p => !categoryPermissions.includes(p))
+        }));
+      } else {
+        setNewRole(prev => ({
+          ...prev,
+          permissions: [...new Set([...prev.permissions, ...categoryPermissions])]
+        }));
+      }
+    } else if (editingRole) {
+      const hasAllCategoryPerms = categoryPermissions.every(perm => editingRole.permissions.includes(perm));
+      if (hasAllCategoryPerms) {
+        setEditingRole(prev => prev ? ({
+          ...prev,
+          permissions: prev.permissions.filter(p => !categoryPermissions.includes(p))
+        }) : null);
+      } else {
+        setEditingRole(prev => prev ? ({
+          ...prev,
+          permissions: [...new Set([...prev.permissions, ...categoryPermissions])]
+        }) : null);
+      }
+    }
+  };
+
   const PermissionSelector = ({ 
     selectedPermissions, 
     onToggle, 
-    categories 
+    categories,
+    onSelectAll,
+    onSelectCategory,
+    isCreating = false
   }: { 
     selectedPermissions: string[], 
     onToggle: (permission: string) => void,
-    categories: PermissionCategory
-  }) => (
-    <div className="space-y-6">
-      {Object.entries(categories).map(([category, permissions]) => (
-        <div key={category} className="space-y-3">
+    categories: PermissionCategory,
+    onSelectAll: () => void,
+    onSelectCategory: (categoryPermissions: string[]) => void,
+    isCreating?: boolean
+  }) => {
+    const allPermissions = Object.values(categories).flat();
+    const isAllSelected = allPermissions.every(perm => selectedPermissions.includes(perm));
+    
+    return (
+      <div className="space-y-6">
+        {/* Global Select All */}
+        <div className="border-b pb-4">
           <div className="flex items-center space-x-2">
-            <Shield className="h-4 w-4 text-primary" />
-            <h4 className="font-semibold text-gray-900">{category}</h4>
-          </div>
-          <div className="grid grid-cols-2 gap-2 pl-6">
-            {permissions.map((permission) => (
-              <div key={permission} className="flex items-center space-x-2">
-                <Checkbox
-                  id={permission}
-                  checked={selectedPermissions.includes(permission)}
-                  onCheckedChange={() => onToggle(permission)}
-                />
-                <Label htmlFor={permission} className="text-sm text-gray-600">
-                  {permission.replace(/[_:]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </Label>
-              </div>
-            ))}
+            <Checkbox
+              id="select-all-permissions"
+              checked={isAllSelected}
+              onCheckedChange={onSelectAll}
+            />
+            <Label htmlFor="select-all-permissions" className="font-semibold text-gray-900">
+              Select All Permissions ({selectedPermissions.length}/{allPermissions.length})
+            </Label>
           </div>
         </div>
-      ))}
-    </div>
-  );
+
+        {Object.entries(categories).map(([category, permissions]) => {
+          const categorySelected = permissions.every(perm => selectedPermissions.includes(perm));
+          const categoryPartiallySelected = permissions.some(perm => selectedPermissions.includes(perm));
+          
+          return (
+            <div key={category} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <h4 className="font-semibold text-gray-900">{category}</h4>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`select-${category}`}
+                    checked={categorySelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = categoryPartiallySelected && !categorySelected;
+                    }}
+                    onCheckedChange={() => onSelectCategory(permissions)}
+                  />
+                  <Label htmlFor={`select-${category}`} className="text-sm font-medium">
+                    Select All
+                  </Label>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pl-6">
+                {permissions.map((permission) => (
+                  <div key={permission} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={permission}
+                      checked={selectedPermissions.includes(permission)}
+                      onCheckedChange={() => onToggle(permission)}
+                    />
+                    <Label htmlFor={permission} className="text-sm text-gray-600">
+                      {permission.replace(/[_:]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   if (rolesLoading) {
     return (
@@ -302,6 +423,9 @@ export default function RoleManagement() {
                       selectedPermissions={newRole.permissions}
                       onToggle={(permission) => handlePermissionToggle(permission, true)}
                       categories={permissionsData.categories}
+                      onSelectAll={() => handleSelectAllPermissions(true)}
+                      onSelectCategory={(categoryPermissions) => handleSelectCategoryPermissions(categoryPermissions, true)}
+                      isCreating={true}
                     />
                   )}
                   {!permissionsData?.categories && (
@@ -399,6 +523,14 @@ export default function RoleManagement() {
                   </Button>
                   <Button
                     size="sm"
+                    variant={role.isActive ? "secondary" : "default"}
+                    onClick={() => handleToggleRoleStatus(role.id)}
+                    data-testid={`button-toggle-role-${role.id}`}
+                  >
+                    {role.isActive ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="destructive"
                     onClick={() => handleDeleteRole(role.id)}
                     data-testid={`button-delete-role-${role.id}`}
@@ -445,6 +577,9 @@ export default function RoleManagement() {
                     selectedPermissions={editingRole.permissions || []}
                     onToggle={(permission) => handlePermissionToggle(permission, false)}
                     categories={permissionsData.categories}
+                    onSelectAll={() => handleSelectAllPermissions(false)}
+                    onSelectCategory={(categoryPermissions) => handleSelectCategoryPermissions(categoryPermissions, false)}
+                    isCreating={false}
                   />
                 )}
                 {!permissionsData?.categories && (
