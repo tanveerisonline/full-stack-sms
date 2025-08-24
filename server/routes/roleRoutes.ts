@@ -341,7 +341,7 @@ router.post('/initialize', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Get approved and active users for role assignment
-router.get('/users/eligible', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/users/eligible', authenticateToken, requireSuperAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { search = '' } = req.query;
 
@@ -397,7 +397,7 @@ router.get('/users/eligible', async (req: AuthenticatedRequest, res: Response) =
 });
 
 // Assign role to user
-router.post('/assign', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/assign', authenticateToken, requireSuperAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId, roleId } = req.body;
 
@@ -472,7 +472,7 @@ router.post('/assign', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Remove role from user (set to default)
-router.post('/remove', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/remove', authenticateToken, requireSuperAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.body;
 

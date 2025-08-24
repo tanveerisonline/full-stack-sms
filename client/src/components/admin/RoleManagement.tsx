@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit2, Trash2, Shield, Users, Settings, Search, UserCheck, UserX } from 'lucide-react';
-import UserAssignments from './UserAssignments';
 
 interface Role {
   id: number;
@@ -54,6 +53,7 @@ export default function RoleManagement() {
     permissions: [] as string[],
   });
   const [selectAllPermissions, setSelectAllPermissions] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
 
   // Fetch roles
   const { data: rolesData, isLoading: rolesLoading } = useQuery({
@@ -76,6 +76,16 @@ export default function RoleManagement() {
       const data = await response.json();
       console.log('Permissions API Response:', data);
       return data;
+    },
+  });
+
+  // Fetch eligible users
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['/api/super-admin/roles/users/eligible', userSearchTerm],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/super-admin/roles/users/eligible?search=${userSearchTerm}`);
+      const data = await response.json();
+      return data.users || [];
     },
   });
 
@@ -178,6 +188,42 @@ export default function RoleManagement() {
     },
   });
 
+  // Assign role mutation
+  const assignRoleMutation = useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: number; roleId: number }) => {
+      const response = await apiRequest('/api/super-admin/roles/assign', {
+        method: 'POST',
+        body: JSON.stringify({ userId, roleId }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles/users/eligible'] });
+      toast({ title: 'Success', description: 'Role assigned successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to assign role', variant: 'destructive' });
+    },
+  });
+
+  // Remove role mutation
+  const removeRoleMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest('/api/super-admin/roles/remove', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles/users/eligible'] });
+      toast({ title: 'Success', description: 'Role removed successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to remove role', variant: 'destructive' });
+    },
+  });
+
   const handleCreateRole = () => {
     if (newRole.name.trim()) {
       createRoleMutation.mutate(newRole);
@@ -198,6 +244,16 @@ export default function RoleManagement() {
 
   const handleToggleRoleStatus = (roleId: number) => {
     toggleRoleStatusMutation.mutate(roleId);
+  };
+
+  const handleAssignRole = (userId: number, roleId: number) => {
+    assignRoleMutation.mutate({ userId, roleId });
+  };
+
+  const handleRemoveRole = (userId: number) => {
+    if (confirm('Are you sure you want to remove this user\'s role?')) {
+      removeRoleMutation.mutate(userId);
+    }
   };
 
   const handleEditRole = (role: Role) => {
@@ -228,14 +284,14 @@ export default function RoleManagement() {
     const allPermissions = permissionsData?.permissions || [];
     
     if (isCreating) {
-      const hasAllPerms = allPermissions.every(perm => newRole.permissions.includes(perm));
+      const hasAllPerms = allPermissions.every((perm: string) => newRole.permissions.includes(perm));
       if (hasAllPerms) {
         setNewRole(prev => ({ ...prev, permissions: [] }));
       } else {
         setNewRole(prev => ({ ...prev, permissions: [...allPermissions] }));
       }
     } else if (editingRole) {
-      const hasAllPerms = allPermissions.every(perm => editingRole.permissions.includes(perm));
+      const hasAllPerms = allPermissions.every((perm: string) => editingRole.permissions.includes(perm));
       if (hasAllPerms) {
         setEditingRole(prev => prev ? ({ ...prev, permissions: [] }) : null);
       } else {
@@ -255,7 +311,7 @@ export default function RoleManagement() {
       } else {
         setNewRole(prev => ({
           ...prev,
-          permissions: [...new Set([...prev.permissions, ...categoryPermissions])]
+          permissions: Array.from(new Set([...prev.permissions, ...categoryPermissions]))
         }));
       }
     } else if (editingRole) {
@@ -268,7 +324,7 @@ export default function RoleManagement() {
       } else {
         setEditingRole(prev => prev ? ({
           ...prev,
-          permissions: [...new Set([...prev.permissions, ...categoryPermissions])]
+          permissions: Array.from(new Set([...prev.permissions, ...categoryPermissions]))
         }) : null);
       }
     }
@@ -324,7 +380,9 @@ export default function RoleManagement() {
                     id={`select-${category}`}
                     checked={categorySelected}
                     ref={(el) => {
-                      if (el) el.indeterminate = categoryPartiallySelected && !categorySelected;
+                      if (el && 'indeterminate' in el) {
+                        (el as any).indeterminate = categoryPartiallySelected && !categorySelected;
+                      }
                     }}
                     onCheckedChange={() => onSelectCategory(permissions)}
                   />
@@ -376,25 +434,17 @@ export default function RoleManagement() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="assignments" className="w-full">
+      <Tabs defaultValue="roles" className="w-full">
         <TabsList className="mb-6">
-          <TabsTrigger value="assignments" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            User Assignments
-          </TabsTrigger>
           <TabsTrigger value="roles" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Role Management
+            Manage Roles
           </TabsTrigger>
           <TabsTrigger value="permissions" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Permission Settings
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="assignments" className="space-y-6">
-          <UserAssignments />
-        </TabsContent>
 
         <TabsContent value="roles" className="space-y-6">
           {/* Header */}
@@ -571,6 +621,111 @@ export default function RoleManagement() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* User Role Assignments Section */}
+          <div className="border-t pt-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">User Role Assignments</h3>
+                <p className="text-gray-600">Assign roles to approved and active users</p>
+              </div>
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search users..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search-users"
+                />
+              </div>
+            </div>
+
+            {usersLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-32 bg-gray-200 rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(Array.isArray(usersData) ? usersData : []).map((user: User) => (
+                  <Card key={user.id} className="p-4" data-testid={`user-card-${user.id}`}>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium text-gray-900">
+                            {user.firstName} {user.lastName}
+                          </h4>
+                          <p className="text-sm text-gray-600">{user.email}</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Badge 
+                            variant={
+                              user.role === 'super_admin' ? 'destructive' :
+                              user.role === 'admin' ? 'secondary' :
+                              user.role === 'teacher' ? 'default' :
+                              'outline'
+                            }
+                            className="text-xs"
+                          >
+                            {user.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {user.isApproved && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                            Approved
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <Select onValueChange={(roleId) => handleAssignRole(user.id, parseInt(roleId))}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Assign Role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Array.isArray(rolesData) ? rolesData : []).filter((role: Role) => role.isActive).map((role: Role) => (
+                              <SelectItem key={role.id} value={role.id.toString()}>
+                                {role.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRemoveRole(user.id)}
+                          disabled={removeRoleMutation.isPending}
+                          data-testid={`button-remove-role-${user.id}`}
+                        >
+                          <UserX className="w-4 h-4 mr-1" />
+                          Remove Role
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {!usersLoading && (!usersData || usersData.length === 0) && (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Eligible Users Found</h3>
+                <p className="text-gray-600">There are no approved and active users available for role assignment.</p>
+              </div>
+            )}
           </div>
 
           {/* Edit Role Modal */}
