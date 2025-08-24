@@ -39,7 +39,7 @@ interface AuthenticatedRequest extends Request {
 // Auth endpoint that doesn't require authentication 
 router.get('/auth/me', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (req.user && req.user.role === 'super_admin') {
+    if (req.user && (req.user.role === 'super_admin' || req.user.role === 'Super Administrator')) {
       res.json(req.user);
     } else {
       res.status(403).json({ message: 'Super Admin access required' });
@@ -74,7 +74,7 @@ router.get('/dashboard/stats', async (req: AuthenticatedRequest, res: Response) 
     const [adminCount] = await db
       .select({ count: count() })
       .from(users)
-      .where(sql`role IN ('admin', 'super_admin')`);
+      .where(sql`role IN ('admin', 'super_admin', 'Super Administrator')`);
 
     // Get financial summary
     const [revenueData] = await db
@@ -247,7 +247,7 @@ router.delete('/users/:id', async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Prevent deletion of super admins by other super admins
-    if (userToDelete.role === 'super_admin' && req.user!.id !== userId) {
+    if ((userToDelete.role === 'super_admin' || userToDelete.role === 'Super Administrator') && req.user!.id !== userId) {
       return res.status(403).json({ message: 'Cannot delete other super admin accounts' });
     }
 

@@ -120,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user is approved (except for super_admin who can always login)
-      if (user.role !== 'super_admin' && !user.isApproved) {
+      if (user.role !== 'super_admin' && user.role !== 'Super Administrator' && !user.isApproved) {
         return res.status(403).json({ 
           message: 'Your account is pending approval. Please contact an administrator.' 
         });

@@ -88,7 +88,7 @@ export function requireRole(roles: string[]) {
   };
 }
 
-export const requireSuperAdmin = requireRole(['super_admin']);
+export const requireSuperAdmin = requireRole(['super_admin', 'Super Administrator']);
 
 export async function logAuditEvent(
   userId: number,
