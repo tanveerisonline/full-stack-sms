@@ -43,7 +43,7 @@ export default function RoleManagement() {
 
   // Fetch roles
   const { data: rolesData, isLoading: rolesLoading } = useQuery({
-    queryKey: ['/api/super-admin/roles', { search: searchTerm }],
+    queryKey: ['/api/super-admin/roles', searchTerm],
     queryFn: () => apiRequest(`/api/super-admin/roles?search=${searchTerm}`),
   });
 
@@ -63,6 +63,7 @@ export default function RoleManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
+      queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
       setShowCreateModal(false);
       setNewRole({ name: '', description: '', permissions: [] });
       toast({ title: 'Success', description: 'Role created successfully!' });
@@ -86,6 +87,7 @@ export default function RoleManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
+      queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
       setShowEditModal(false);
       setEditingRole(null);
       toast({ title: 'Success', description: 'Role updated successfully!' });
@@ -108,6 +110,7 @@ export default function RoleManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
+      queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
       toast({ title: 'Success', description: 'Role deactivated successfully!' });
     },
     onError: (error: any) => {
