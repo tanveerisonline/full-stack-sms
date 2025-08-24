@@ -36,7 +36,7 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   role: string;
-  status: string;
+  isActive: boolean;
   isApproved: boolean;
 }
 
@@ -45,13 +45,9 @@ export default function RoleManagement() {
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [selectedRoleForAssignment, setSelectedRoleForAssignment] = useState<string>('');
   const [newRole, setNewRole] = useState({
     name: '',
     description: '',
@@ -83,15 +79,6 @@ export default function RoleManagement() {
     },
   });
 
-  // Fetch eligible users (approved and active)
-  const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['/api/super-admin/roles/users/eligible', userSearchTerm],
-    queryFn: async () => {
-      const response = await apiRequest(`/api/super-admin/roles/users/eligible?search=${userSearchTerm}`);
-      return response.json();
-    },
-  });
-
   // Create role mutation
   const createRoleMutation = useMutation({
     mutationFn: async (roleData: any) => {
@@ -99,46 +86,36 @@ export default function RoleManagement() {
         method: 'POST',
         body: JSON.stringify(roleData),
       });
-      return await response.json();
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
-      queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
       setShowCreateModal(false);
       setNewRole({ name: '', description: '', permissions: [] });
       toast({ title: 'Success', description: 'Role created successfully!' });
     },
     onError: (error: any) => {
-      toast({ 
-        title: 'Error', 
-        description: error.message || 'Failed to create role',
-        variant: 'destructive'
-      });
+      toast({ title: 'Error', description: error.message || 'Failed to create role', variant: 'destructive' });
     },
   });
 
   // Update role mutation
   const updateRoleMutation = useMutation({
-    mutationFn: async (roleData: any) => {
-      const response = await apiRequest(`/api/super-admin/roles/${roleData.id}`, {
+    mutationFn: async ({ id, ...roleData }: any) => {
+      const response = await apiRequest(`/api/super-admin/roles/${id}`, {
         method: 'PUT',
         body: JSON.stringify(roleData),
       });
-      return await response.json();
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
-      queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
       setShowEditModal(false);
       setEditingRole(null);
       toast({ title: 'Success', description: 'Role updated successfully!' });
     },
     onError: (error: any) => {
-      toast({ 
-        title: 'Error', 
-        description: error.message || 'Failed to update role',
-        variant: 'destructive'
-      });
+      toast({ title: 'Error', description: error.message || 'Failed to update role', variant: 'destructive' });
     },
   });
 
@@ -156,33 +133,24 @@ export default function RoleManagement() {
       toast({ title: 'Success', description: 'Role deleted successfully!' });
     },
     onError: (error: any) => {
-      toast({ 
-        title: 'Error', 
-        description: error.message || 'Failed to delete role',
-        variant: 'destructive'
-      });
+      toast({ title: 'Error', description: error.message || 'Failed to delete role', variant: 'destructive' });
     },
   });
 
   // Toggle role status mutation
   const toggleRoleStatusMutation = useMutation({
     mutationFn: async (roleId: number) => {
-      const response = await apiRequest(`/api/super-admin/roles/${roleId}/toggle-status`, {
+      const response = await apiRequest(`/api/super-admin/roles/${roleId}/toggle`, {
         method: 'PATCH',
       });
-      return await response.json();
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
-      queryClient.refetchQueries({ queryKey: ['/api/super-admin/roles'] });
       toast({ title: 'Success', description: 'Role status updated successfully!' });
     },
     onError: (error: any) => {
-      toast({ 
-        title: 'Error', 
-        description: error.message || 'Failed to update role status',
-        variant: 'destructive'
-      });
+      toast({ title: 'Error', description: error.message || 'Failed to update role status', variant: 'destructive' });
     },
   });
 
@@ -192,11 +160,14 @@ export default function RoleManagement() {
       const response = await apiRequest('/api/super-admin/roles/initialize', {
         method: 'POST',
       });
-      return await response.json();
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
-      toast({ title: 'Success', description: 'Default roles initialized successfully!' });
+      toast({ 
+        title: 'Success', 
+        description: 'Default roles initialized successfully!' 
+      });
     },
     onError: (error: any) => {
       toast({ 
@@ -204,45 +175,6 @@ export default function RoleManagement() {
         description: error.message || 'Failed to initialize roles',
         variant: 'destructive'
       });
-    },
-  });
-
-  // Assign role mutation
-  const assignRoleMutation = useMutation({
-    mutationFn: async ({ userId, roleId }: { userId: number; roleId: number }) => {
-      const response = await apiRequest('/api/super-admin/roles/assign', {
-        method: 'POST',
-        body: JSON.stringify({ userId, roleId }),
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles/users/eligible'] });
-      setShowAssignModal(false);
-      setSelectedUser(null);
-      setSelectedRoleForAssignment('');
-      toast({ title: 'Success', description: 'Role assigned successfully!' });
-    },
-    onError: (error: any) => {
-      toast({ title: 'Error', description: error.message || 'Failed to assign role', variant: 'destructive' });
-    },
-  });
-
-  // Remove role mutation
-  const removeRoleMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await apiRequest('/api/super-admin/roles/remove', {
-        method: 'POST',
-        body: JSON.stringify({ userId }),
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles/users/eligible'] });
-      toast({ title: 'Success', description: 'Role removed successfully!' });
-    },
-    onError: (error: any) => {
-      toast({ title: 'Error', description: error.message || 'Failed to remove role', variant: 'destructive' });
     },
   });
 
@@ -268,31 +200,12 @@ export default function RoleManagement() {
     toggleRoleStatusMutation.mutate(roleId);
   };
 
-  const handleAssignRole = (user: User) => {
-    setSelectedUser(user);
-    setShowAssignModal(true);
-  };
-
-  const handleConfirmAssign = () => {
-    if (selectedUser && selectedRoleForAssignment) {
-      assignRoleMutation.mutate({
-        userId: selectedUser.id,
-        roleId: parseInt(selectedRoleForAssignment)
-      });
-    }
-  };
-
-  const handleRemoveRole = (userId: number) => {
-    if (confirm('Are you sure you want to remove this user\'s role? They will be set to the default user role.')) {
-      removeRoleMutation.mutate(userId);
-    }
-  };
-
   const handleEditRole = (role: Role) => {
     setEditingRole({ ...role });
     setShowEditModal(true);
   };
 
+  // Permission handling functions
   const handlePermissionToggle = (permission: string, isCreating: boolean = false) => {
     if (isCreating) {
       setNewRole(prev => ({
@@ -302,27 +215,28 @@ export default function RoleManagement() {
           : [...prev.permissions, permission]
       }));
     } else if (editingRole) {
-      setEditingRole(prev => prev ? {
+      setEditingRole(prev => prev ? ({
         ...prev,
         permissions: prev.permissions.includes(permission)
           ? prev.permissions.filter(p => p !== permission)
           : [...prev.permissions, permission]
-      } : null);
+      }) : null);
     }
   };
 
   const handleSelectAllPermissions = (isCreating: boolean = false) => {
     const allPermissions = permissionsData?.permissions || [];
+    
     if (isCreating) {
-      if (newRole.permissions.length === allPermissions.length) {
+      const hasAllPerms = allPermissions.every(perm => newRole.permissions.includes(perm));
+      if (hasAllPerms) {
         setNewRole(prev => ({ ...prev, permissions: [] }));
-        setSelectAllPermissions(false);
       } else {
         setNewRole(prev => ({ ...prev, permissions: [...allPermissions] }));
-        setSelectAllPermissions(true);
       }
     } else if (editingRole) {
-      if (editingRole.permissions.length === allPermissions.length) {
+      const hasAllPerms = allPermissions.every(perm => editingRole.permissions.includes(perm));
+      if (hasAllPerms) {
         setEditingRole(prev => prev ? ({ ...prev, permissions: [] }) : null);
       } else {
         setEditingRole(prev => prev ? ({ ...prev, permissions: [...allPermissions] }) : null);
@@ -459,255 +373,288 @@ export default function RoleManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Role Management</h2>
           <p className="text-gray-600">Manage user roles and permissions</p>
         </div>
-        <div className="flex space-x-3">
-          <Button 
-            onClick={() => initializeRolesMutation.mutate()}
-            variant="outline"
-            disabled={initializeRolesMutation.isPending}
-            data-testid="button-initialize-roles"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Initialize Default Roles
-          </Button>
-          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-create-role">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Role
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="assignments" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="assignments" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            User Assignments
+          </TabsTrigger>
+          <TabsTrigger value="roles" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Role Management
+          </TabsTrigger>
+          <TabsTrigger value="permissions" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Permission Settings
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="assignments" className="space-y-6">
+          <UserAssignments />
+        </TabsContent>
+
+        <TabsContent value="roles" className="space-y-6">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Manage Roles</h3>
+              <p className="text-gray-600">Create, edit, and delete user roles</p>
+            </div>
+            <div className="flex space-x-3">
+              <Button 
+                onClick={() => initializeRolesMutation.mutate()}
+                variant="outline"
+                disabled={initializeRolesMutation.isPending}
+                data-testid="button-initialize-roles"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Initialize Default Roles
               </Button>
-            </DialogTrigger>
+              <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-create-role">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Role
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Role</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="role-name">Role Name</Label>
+                      <Input
+                        id="role-name"
+                        value={newRole.name}
+                        onChange={(e) => setNewRole(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter role name"
+                        data-testid="input-role-name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="role-description">Description</Label>
+                      <Textarea
+                        id="role-description"
+                        value={newRole.description}
+                        onChange={(e) => setNewRole(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Enter role description"
+                        data-testid="textarea-role-description"
+                      />
+                    </div>
+                    <div>
+                      <Label>Permissions</Label>
+                      {permissionsData?.categories && (
+                        <PermissionSelector
+                          selectedPermissions={newRole.permissions}
+                          onToggle={(permission) => handlePermissionToggle(permission, true)}
+                          categories={permissionsData.categories}
+                          onSelectAll={() => handleSelectAllPermissions(true)}
+                          onSelectCategory={(categoryPermissions) => handleSelectCategoryPermissions(categoryPermissions, true)}
+                          isCreating={true}
+                        />
+                      )}
+                      {!permissionsData?.categories && (
+                        <div className="text-center py-4 text-gray-500">
+                          Loading permissions...
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-end space-x-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowCreateModal(false)}
+                        data-testid="button-cancel-create"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleCreateRole}
+                        disabled={createRoleMutation.isPending || !newRole.name.trim()}
+                        data-testid="button-save-role"
+                      >
+                        {createRoleMutation.isPending ? 'Creating...' : 'Create Role'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search roles..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-roles"
+              />
+            </div>
+          </div>
+
+          {/* Roles List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(Array.isArray(rolesData) ? rolesData : []).map((role: Role) => (
+              <Card key={role.id} className="h-full" data-testid={`role-card-${role.id}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{role.name}</CardTitle>
+                    <div className="flex space-x-2">
+                      <Badge variant={role.isActive ? 'default' : 'secondary'}>
+                        {role.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                  </div>
+                  {role.description && (
+                    <p className="text-sm text-gray-600">{role.description}</p>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Shield className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">
+                        Permissions ({role.permissions?.length || 0})
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                      {role.permissions?.slice(0, 6).map((permission) => (
+                        <Badge key={permission} variant="outline" className="text-xs">
+                          {permission.replace(/[_:]/g, ' ')}
+                        </Badge>
+                      ))}
+                      {role.permissions?.length > 6 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{role.permissions.length - 6} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs text-gray-500">
+                      Created: {new Date(role.createdAt).toLocaleDateString()}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditRole(role)}
+                        data-testid={`button-edit-role-${role.id}`}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={role.isActive ? "secondary" : "default"}
+                        onClick={() => handleToggleRoleStatus(role.id)}
+                        data-testid={`button-toggle-role-${role.id}`}
+                      >
+                        {role.isActive ? 'Deactivate' : 'Activate'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteRole(role.id)}
+                        data-testid={`button-delete-role-${role.id}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Edit Role Modal */}
+          <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Role</DialogTitle>
+                <DialogTitle>Edit Role</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="role-name">Role Name</Label>
-                  <Input
-                    id="role-name"
-                    value={newRole.name}
-                    onChange={(e) => setNewRole(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter role name"
-                    data-testid="input-role-name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="role-description">Description</Label>
-                  <Textarea
-                    id="role-description"
-                    value={newRole.description}
-                    onChange={(e) => setNewRole(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter role description"
-                    data-testid="textarea-role-description"
-                  />
-                </div>
-                <div>
-                  <Label>Permissions</Label>
-                  {permissionsData?.categories && (
-                    <PermissionSelector
-                      selectedPermissions={newRole.permissions}
-                      onToggle={(permission) => handlePermissionToggle(permission, true)}
-                      categories={permissionsData.categories}
-                      onSelectAll={() => handleSelectAllPermissions(true)}
-                      onSelectCategory={(categoryPermissions) => handleSelectCategoryPermissions(categoryPermissions, true)}
-                      isCreating={true}
+              {editingRole && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-role-name">Role Name</Label>
+                    <Input
+                      id="edit-role-name"
+                      value={editingRole.name}
+                      onChange={(e) => setEditingRole(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
+                      placeholder="Enter role name"
                     />
-                  )}
-                  {!permissionsData?.categories && (
-                    <div className="text-center py-4 text-gray-500">
-                      Loading permissions...
-                    </div>
-                  )}
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-role-description">Description</Label>
+                    <Textarea
+                      id="edit-role-description"
+                      value={editingRole.description || ''}
+                      onChange={(e) => setEditingRole(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
+                      placeholder="Enter role description"
+                    />
+                  </div>
+                  <div>
+                    <Label>Permissions</Label>
+                    {permissionsData?.categories && (
+                      <PermissionSelector
+                        selectedPermissions={editingRole.permissions}
+                        onToggle={(permission) => handlePermissionToggle(permission, false)}
+                        categories={permissionsData.categories}
+                        onSelectAll={() => handleSelectAllPermissions(false)}
+                        onSelectCategory={(categoryPermissions) => handleSelectCategoryPermissions(categoryPermissions, false)}
+                        isCreating={false}
+                      />
+                    )}
+                  </div>
+                  <div className="flex justify-end space-x-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowEditModal(false)}
+                      data-testid="button-cancel-edit"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleUpdateRole}
+                      disabled={updateRoleMutation.isPending || !editingRole.name.trim()}
+                      data-testid="button-update-role"
+                    >
+                      {updateRoleMutation.isPending ? 'Updating...' : 'Update Role'}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex justify-end space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCreateModal(false)}
-                    data-testid="button-cancel-create"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleCreateRole}
-                    disabled={createRoleMutation.isPending || !newRole.name.trim()}
-                    data-testid="button-save-role"
-                  >
-                    {createRoleMutation.isPending ? 'Creating...' : 'Create Role'}
-                  </Button>
-                </div>
-              </div>
+              )}
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+        </TabsContent>
 
-      {/* Search */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search roles..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-            data-testid="input-search-roles"
-          />
-        </div>
-      </div>
-
-      {/* Roles List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(Array.isArray(rolesData) ? rolesData : []).map((role: Role) => (
-          <Card key={role.id} className="h-full" data-testid={`role-card-${role.id}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{role.name}</CardTitle>
-                <div className="flex space-x-2">
-                  <Badge variant={role.isActive ? 'default' : 'secondary'}>
-                    {role.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-              </div>
-              {role.description && (
-                <p className="text-sm text-gray-600">{role.description}</p>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <Shield className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">
-                    Permissions ({role.permissions?.length || 0})
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                  {role.permissions?.slice(0, 6).map((permission) => (
-                    <Badge key={permission} variant="outline" className="text-xs">
-                      {permission.replace(/[_:]/g, ' ')}
-                    </Badge>
+        <TabsContent value="permissions" className="space-y-6">
+          <div className="text-center py-8">
+            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Permission Settings</h3>
+            <p className="text-gray-600">Configure and view available system permissions</p>
+            {permissionsData?.permissions && (
+              <div className="mt-6 text-left max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {permissionsData.permissions.map((permission: string) => (
+                    <div key={permission} className="p-3 bg-gray-50 rounded-lg">
+                      <code className="text-sm text-gray-800">
+                        {permission.replace(/[_:]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </code>
+                    </div>
                   ))}
-                  {role.permissions?.length > 6 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{role.permissions.length - 6} more
-                    </Badge>
-                  )}
                 </div>
               </div>
-              <div className="flex justify-between items-center">
-                <div className="text-xs text-gray-500">
-                  Created: {new Date(role.createdAt).toLocaleDateString()}
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditRole(role)}
-                    data-testid={`button-edit-role-${role.id}`}
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={role.isActive ? "secondary" : "default"}
-                    onClick={() => handleToggleRoleStatus(role.id)}
-                    data-testid={`button-toggle-role-${role.id}`}
-                  >
-                    {role.isActive ? 'Deactivate' : 'Activate'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteRole(role.id)}
-                    data-testid={`button-delete-role-${role.id}`}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Edit Role Modal */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Role</DialogTitle>
-          </DialogHeader>
-          {editingRole && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-role-name">Role Name</Label>
-                <Input
-                  id="edit-role-name"
-                  value={editingRole.name}
-                  onChange={(e) => setEditingRole(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
-                  placeholder="Enter role name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-role-description">Description</Label>
-                <Textarea
-                  id="edit-role-description"
-                  value={editingRole.description || ''}
-                  onChange={(e) => setEditingRole(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
-                  placeholder="Enter role description"
-                />
-              </div>
-              <div>
-                <Label>Permissions</Label>
-                {permissionsData?.categories && (
-                  <PermissionSelector
-                    selectedPermissions={editingRole.permissions || []}
-                    onToggle={(permission) => handlePermissionToggle(permission, false)}
-                    categories={permissionsData.categories}
-                    onSelectAll={() => handleSelectAllPermissions(false)}
-                    onSelectCategory={(categoryPermissions) => handleSelectCategoryPermissions(categoryPermissions, false)}
-                    isCreating={false}
-                  />
-                )}
-                {!permissionsData?.categories && (
-                  <div className="text-center py-4 text-gray-500">
-                    Loading permissions...
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowEditModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleUpdateRole}
-                  disabled={updateRoleMutation.isPending || !editingRole.name.trim()}
-                >
-                  {updateRoleMutation.isPending ? 'Updating...' : 'Update Role'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Empty State */}
-      {(!rolesLoading && (!rolesData || (Array.isArray(rolesData) && rolesData.length === 0))) && (
-        <Card className="py-12">
-          <CardContent className="text-center">
-            <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No roles found</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first role or initializing default roles.</p>
-            <Button
-              onClick={() => initializeRolesMutation.mutate()}
-              disabled={initializeRolesMutation.isPending}
-            >
-              Initialize Default Roles
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

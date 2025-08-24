@@ -17,7 +17,7 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   role: string;
-  status: string;
+  isActive: boolean;
   isApproved: boolean;
 }
 
@@ -209,7 +209,7 @@ export default function UserAssignments() {
 
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {user.status}
+                      {user.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                     {user.isApproved && (
                       <Badge variant="outline" className="text-xs bg-green-50 text-green-700">

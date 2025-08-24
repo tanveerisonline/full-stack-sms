@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken, requireSuperAdmin, logAuditEvent, AuthenticatedRequest } from '../middleware/auth';
 import { db } from '../db';
-import { roles, insertRoleSchema, type Role } from '@shared/schemas';
-import { users } from '@shared/schemas/user';
+import { roles, insertRoleSchema, type Role, users } from '@shared/schemas';
 import { eq, desc, count, ilike, or, and } from 'drizzle-orm';
 import { PERMISSIONS, DEFAULT_ROLES, getAllPermissions, PERMISSION_CATEGORIES } from '@shared/permissions';
 
@@ -18,10 +17,10 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     const { page = 1, limit = 20, search = '' } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
-    let query = db.select().from(roles);
+    let baseQuery = db.select().from(roles);
     
     if (search) {
-      query = query.where(
+      baseQuery = baseQuery.where(
         or(
           ilike(roles.name, `%${search}%`),
           ilike(roles.description, `%${search}%`)
@@ -30,7 +29,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const [rolesData, totalCount] = await Promise.all([
-      query
+      baseQuery
         .orderBy(desc(roles.createdAt))
         .limit(Number(limit))
         .offset(offset),
@@ -346,7 +345,25 @@ router.get('/users/eligible', async (req: AuthenticatedRequest, res: Response) =
   try {
     const { search = '' } = req.query;
 
-    let query = db
+    let whereCondition = and(
+      eq(users.isApproved, true),
+      eq(users.isActive, true)
+    );
+
+    if (search) {
+      whereCondition = and(
+        eq(users.isApproved, true),
+        eq(users.isActive, true),
+        or(
+          ilike(users.username, `%${search}%`),
+          ilike(users.email, `%${search}%`),
+          ilike(users.firstName, `%${search}%`),
+          ilike(users.lastName, `%${search}%`)
+        )
+      );
+    }
+
+    const userQuery = db
       .select({
         id: users.id,
         username: users.username,
@@ -354,33 +371,13 @@ router.get('/users/eligible', async (req: AuthenticatedRequest, res: Response) =
         firstName: users.firstName,
         lastName: users.lastName,
         role: users.role,
-        status: users.status,
+        isActive: users.isActive,
         isApproved: users.isApproved,
       })
       .from(users)
-      .where(
-        and(
-          eq(users.isApproved, true),
-          eq(users.status, 'active')
-        )
-      );
+      .where(whereCondition);
 
-    if (search) {
-      query = query.where(
-        and(
-          eq(users.isApproved, true),
-          eq(users.status, 'active'),
-          or(
-            ilike(users.username, `%${search}%`),
-            ilike(users.email, `%${search}%`),
-            ilike(users.firstName, `%${search}%`),
-            ilike(users.lastName, `%${search}%`)
-          )
-        )
-      );
-    }
-
-    const eligibleUsers = await query.orderBy(desc(users.createdAt));
+    const eligibleUsers = await userQuery.orderBy(desc(users.createdAt));
 
     await logAuditEvent(
       req.user!.id,
@@ -416,7 +413,7 @@ router.post('/assign', async (req: AuthenticatedRequest, res: Response) => {
         and(
           eq(users.id, userId),
           eq(users.isApproved, true),
-          eq(users.status, 'active')
+          eq(users.isActive, true)
         )
       );
 
