@@ -165,6 +165,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Super Admin routes (protected)
   app.use('/api/super-admin', superAdminRoutes);
+  
+  // Role management routes (super admin only)
+  const roleRoutes = (await import('./routes/roleRoutes')).default;
+  app.use('/api/super-admin/roles', roleRoutes);
 
   // Development seed endpoint (only in development)
   if (process.env.NODE_ENV === 'development') {

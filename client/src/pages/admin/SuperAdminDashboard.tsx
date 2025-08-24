@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import RoleManagement from '@/components/admin/RoleManagement';
 import { 
   Users, 
   Shield, 
@@ -30,7 +31,8 @@ import {
   ChevronRight,
   LogOut,
   Edit2,
-  Trash2
+  Trash2,
+  UserCheck
 } from 'lucide-react';
 
 // Mock data for dashboard
@@ -1007,27 +1009,7 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {selectedTab === 'roles' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">Roles & Permissions</h2>
-                <Button data-testid="button-create-role">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Role
-                </Button>
-              </div>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center py-12">
-                    <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Role Management</h3>
-                    <p className="text-gray-600 mb-4">Configure roles and permissions for system access control.</p>
-                    <Button data-testid="button-configure-permissions">Configure Permissions</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {selectedTab === 'roles' && <RoleManagement />}
 
           {selectedTab === 'settings' && (
             <div className="space-y-6">
