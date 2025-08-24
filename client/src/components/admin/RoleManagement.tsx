@@ -44,13 +44,21 @@ export default function RoleManagement() {
   // Fetch roles
   const { data: rolesData, isLoading: rolesLoading } = useQuery({
     queryKey: ['/api/super-admin/roles', searchTerm],
-    queryFn: () => apiRequest(`/api/super-admin/roles?search=${searchTerm}`),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/super-admin/roles?search=${searchTerm}`);
+      console.log('Roles API Response:', response);
+      return response;
+    },
   });
 
   // Fetch permissions
   const { data: permissionsData } = useQuery({
     queryKey: ['/api/super-admin/roles/permissions/list'],
-    queryFn: () => apiRequest('/api/super-admin/roles/permissions/list'),
+    queryFn: async () => {
+      const response = await apiRequest('/api/super-admin/roles/permissions/list');
+      console.log('Permissions API Response:', response);
+      return response;
+    },
   });
 
   // Create role mutation
@@ -288,6 +296,11 @@ export default function RoleManagement() {
                       categories={permissionsData.categories}
                     />
                   )}
+                  {!permissionsData?.categories && (
+                    <div className="text-center py-4 text-gray-500">
+                      Loading permissions...
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-end space-x-3">
                   <Button
@@ -327,7 +340,7 @@ export default function RoleManagement() {
 
       {/* Roles List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rolesData?.roles?.map((role: Role) => (
+        {(rolesData?.roles || []).map((role: Role) => (
           <Card key={role.id} className="h-full" data-testid={`role-card-${role.id}`}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -426,6 +439,11 @@ export default function RoleManagement() {
                     categories={permissionsData.categories}
                   />
                 )}
+                {!permissionsData?.categories && (
+                  <div className="text-center py-4 text-gray-500">
+                    Loading permissions...
+                  </div>
+                )}
               </div>
               <div className="flex justify-end space-x-3">
                 <Button
@@ -447,7 +465,7 @@ export default function RoleManagement() {
       </Dialog>
 
       {/* Empty State */}
-      {rolesData?.roles?.length === 0 && (
+      {(!rolesLoading && (!rolesData?.roles || rolesData.roles.length === 0)) && (
         <Card className="py-12">
           <CardContent className="text-center">
             <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
