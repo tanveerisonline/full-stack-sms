@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import RoleManagement from '@/components/admin/RoleManagement';
 import SystemSettings from '@/components/admin/SystemSettings';
 import AuditLogs from '@/components/admin/AuditLogs';
+import BackupRestore from '@/components/admin/BackupRestore';
 import { 
   Users, 
   Shield, 
@@ -1017,51 +1018,7 @@ export default function SuperAdminDashboard() {
 
           {selectedTab === 'audit' && <AuditLogs />}
 
-          {selectedTab === 'backup' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">Backup & Restore</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Database Backup</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-600">Last backup: 25 hours ago</p>
-                    <div className="space-y-2">
-                      <Button className="w-full" data-testid="button-backup-database">
-                        <Database className="w-4 h-4 mr-2" />
-                        Backup Now
-                      </Button>
-                      <Button variant="outline" className="w-full" data-testid="button-schedule-backup">
-                        <Clock className="w-4 h-4 mr-2" />
-                        Schedule Backup
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>System Restore</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-600">Restore from backup files</p>
-                    <div className="space-y-2">
-                      <Button variant="outline" className="w-full" data-testid="button-restore-database">
-                        <Database className="w-4 h-4 mr-2" />
-                        Restore Database
-                      </Button>
-                      <Button variant="outline" className="w-full" data-testid="button-view-backups">
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Backup History
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
+          {selectedTab === 'backup' && <BackupRestore />}
 
           {selectedTab === 'users-full' && (
             <div className="space-y-6">
