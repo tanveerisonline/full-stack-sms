@@ -46,8 +46,9 @@ export default function RoleManagement() {
     queryKey: ['/api/super-admin/roles', searchTerm],
     queryFn: async () => {
       const response = await apiRequest(`/api/super-admin/roles?search=${searchTerm}`);
-      console.log('Roles API Response:', response);
-      return response;
+      const data = await response.json();
+      console.log('Roles API Response:', data);
+      return data;
     },
   });
 
@@ -56,18 +57,20 @@ export default function RoleManagement() {
     queryKey: ['/api/super-admin/roles/permissions/list'],
     queryFn: async () => {
       const response = await apiRequest('/api/super-admin/roles/permissions/list');
-      console.log('Permissions API Response:', response);
-      return response;
+      const data = await response.json();
+      console.log('Permissions API Response:', data);
+      return data;
     },
   });
 
   // Create role mutation
   const createRoleMutation = useMutation({
     mutationFn: async (roleData: any) => {
-      return await apiRequest('/api/super-admin/roles', {
+      const response = await apiRequest('/api/super-admin/roles', {
         method: 'POST',
         body: JSON.stringify(roleData),
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
@@ -88,10 +91,11 @@ export default function RoleManagement() {
   // Update role mutation
   const updateRoleMutation = useMutation({
     mutationFn: async (roleData: any) => {
-      return await apiRequest(`/api/super-admin/roles/${roleData.id}`, {
+      const response = await apiRequest(`/api/super-admin/roles/${roleData.id}`, {
         method: 'PUT',
         body: JSON.stringify(roleData),
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
@@ -112,9 +116,10 @@ export default function RoleManagement() {
   // Delete role mutation
   const deleteRoleMutation = useMutation({
     mutationFn: async (roleId: number) => {
-      return await apiRequest(`/api/super-admin/roles/${roleId}`, {
+      const response = await apiRequest(`/api/super-admin/roles/${roleId}`, {
         method: 'DELETE',
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
@@ -133,9 +138,10 @@ export default function RoleManagement() {
   // Initialize default roles mutation
   const initializeRolesMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/super-admin/roles/initialize', {
+      const response = await apiRequest('/api/super-admin/roles/initialize', {
         method: 'POST',
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles'] });
