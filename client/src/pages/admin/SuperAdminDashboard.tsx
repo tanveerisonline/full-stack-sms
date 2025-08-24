@@ -96,7 +96,7 @@ export default function SuperAdminDashboard() {
   });
 
   // Use real data or fallback to defaults
-  const systemStats: SystemStats = statsData || {
+  const systemStats: SystemStats = (statsData as SystemStats) || {
     totalUsers: 0,
     activeUsers: 0,
     totalStudents: 0,
@@ -109,8 +109,8 @@ export default function SuperAdminDashboard() {
     pendingDues: 0
   };
 
-  const recentActivities: Activity[] = activitiesData?.activities || [];
-  const securityAlerts: SecurityAlert[] = securityData?.alerts || [];
+  const recentActivities: Activity[] = (activitiesData as any)?.activities || [];
+  const securityAlerts: SecurityAlert[] = (securityData as any)?.alerts || [];
   
   const handleLogout = () => {
     logout();

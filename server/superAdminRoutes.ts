@@ -182,7 +182,7 @@ router.get('/dashboard/activities', async (req: AuthenticatedRequest, res: Respo
         id: activity.id,
         user: userName,
         action: actionDescription,
-        timestamp: activity.timestamp,
+        timestamp: activity.createdAt,
         type: activity.resourceType.toLowerCase(),
         severity,
         ipAddress: activity.ipAddress
@@ -415,7 +415,7 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
     const logs = await db
       .select()
       .from(auditLogs)
-      .orderBy(desc(auditLogs.timestamp))
+      .orderBy(desc(auditLogs.createdAt))
       .limit(limit)
       .offset(offset);
 
@@ -614,8 +614,8 @@ router.post('/settings', async (req: AuthenticatedRequest, res: Response) => {
     const validatedData = insertSystemSettingSchema.parse(req.body);
     const [setting] = await db.insert(systemSettings).values(validatedData).returning();
     
-    await logAuditEvent(req.user!.id, 'CREATE', 'SYSTEM_SETTING', setting.id, 
-      { category: setting.category, key: setting.key }, req);
+    await logAuditEvent(req.user!.id, 'CREATE', 'SYSTEM_SETTING', setting.id.toString(), 
+      { category: setting.category, key: setting.key }, req.ip, req.get('user-agent'));
     
     res.status(201).json(setting);
   } catch (error) {
@@ -633,7 +633,7 @@ router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => 
     const [setting] = await db
       .update(systemSettings)
       .set(validatedData)
-      .where(eq(systemSettings.id, id))
+      .where(eq(systemSettings.id, parseInt(id)))
       .returning();
     
     if (!setting) {
@@ -684,7 +684,7 @@ router.put('/roles/:id', async (req: AuthenticatedRequest, res: Response) => {
     const [role] = await db
       .update(roles)
       .set(validatedData)
-      .where(eq(roles.id, id))
+      .where(eq(roles.id, parseInt(id)))
       .returning();
     
     if (!role) {
@@ -710,7 +710,7 @@ router.get('/sessions', async (req: AuthenticatedRequest, res: Response) => {
         ipAddress: userSessions.ipAddress,
         userAgent: userSessions.userAgent,
         createdAt: userSessions.createdAt,
-        lastActivity: userSessions.lastActivity,
+        // lastActivity: userSessions.lastActivity, // Field doesn't exist
         expiresAt: userSessions.expiresAt,
         user: {
           id: users.id,
@@ -724,7 +724,7 @@ router.get('/sessions', async (req: AuthenticatedRequest, res: Response) => {
       .from(userSessions)
       .leftJoin(users, eq(userSessions.userId, users.id))
       .where(eq(userSessions.isActive, true))
-      .orderBy(desc(userSessions.lastActivity));
+      .orderBy(desc(userSessions.createdAt));
     
     res.json(activeSessions);
   } catch (error) {
