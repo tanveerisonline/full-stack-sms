@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import RoleManagement from '@/components/admin/RoleManagement';
+import SystemSettings from '@/components/admin/SystemSettings';
 import { 
   Users, 
   Shield, 
@@ -1011,96 +1012,7 @@ export default function SuperAdminDashboard() {
 
           {selectedTab === 'roles' && <RoleManagement />}
 
-          {selectedTab === 'settings' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">System Settings</h2>
-              
-              <Tabs defaultValue="general" className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="sms">SMS Gateway</TabsTrigger>
-                  <TabsTrigger value="email">Email Service</TabsTrigger>
-                  <TabsTrigger value="payment">Payment Gateway</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="general">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>General Settings</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">School Name</label>
-                        <Input defaultValue="EduManage Pro School" data-testid="input-school-name" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Admin Email</label>
-                        <Input defaultValue="admin@edumanage.pro" data-testid="input-admin-email" />
-                      </div>
-                      <Button data-testid="button-save-general-settings">Save Settings</Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="sms">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>SMS Gateway Configuration</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Provider</label>
-                        <Input placeholder="Twilio, SMS API, etc." data-testid="input-sms-provider" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">API Key</label>
-                        <Input type="password" placeholder="Enter API key" data-testid="input-sms-api-key" />
-                      </div>
-                      <Button data-testid="button-save-sms-settings">Save SMS Settings</Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="email">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Email Service Configuration</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">SMTP Host</label>
-                        <Input placeholder="smtp.gmail.com" data-testid="input-smtp-host" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">SMTP Port</label>
-                        <Input placeholder="587" data-testid="input-smtp-port" />
-                      </div>
-                      <Button data-testid="button-save-email-settings">Save Email Settings</Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="payment">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Payment Gateway Configuration</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Payment Provider</label>
-                        <Input placeholder="Stripe, PayPal, etc." data-testid="input-payment-provider" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">API Key</label>
-                        <Input type="password" placeholder="Enter API key" data-testid="input-payment-api-key" />
-                      </div>
-                      <Button data-testid="button-save-payment-settings">Save Payment Settings</Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
+          {selectedTab === 'settings' && <SystemSettings />}
 
           {selectedTab === 'audit' && (
             <div className="space-y-6">
