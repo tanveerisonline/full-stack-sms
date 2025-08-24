@@ -35,13 +35,43 @@ import Examinations from "@/pages/examinations";
 import Reports from "@/pages/reports";
 import Admin from "@/pages/admin";
 import SuperAdminDashboard from "@/pages/admin/SuperAdminDashboard";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import TeacherDashboard from "@/pages/dashboards/TeacherDashboard";
+import StudentDashboard from "@/pages/dashboards/StudentDashboard";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
+  const { user } = useAuth();
+  
   return (
     <Switch>
-      {/* Super Admin Dashboard - render without Layout */}
-      <Route path="/super-admin" component={SuperAdminDashboard} />
+      {/* Super Admin Dashboard - render without Layout, only for super_admin role */}
+      {user?.role === 'super_admin' && (
+        <>
+          <Route path="/" component={() => <Redirect to="/super-admin" />} />
+          <Route path="/super-admin" component={SuperAdminDashboard} />
+        </>
+      )}
+      
+      {/* Role-based dashboard routes */}
+      {user?.role === 'admin' && (
+        <>
+          <Route path="/" component={() => <Redirect to="/admin-dashboard" />} />
+          <Route path="/admin-dashboard" component={AdminDashboard} />
+        </>
+      )}
+      {user?.role === 'teacher' && (
+        <>
+          <Route path="/" component={() => <Redirect to="/teacher-dashboard" />} />
+          <Route path="/teacher-dashboard" component={TeacherDashboard} />
+        </>
+      )}
+      {user?.role === 'student' && (
+        <>
+          <Route path="/" component={() => <Redirect to="/student-dashboard" />} />
+          <Route path="/student-dashboard" component={StudentDashboard} />
+        </>
+      )}
       
       {/* Regular app routes - render with Layout */}
       <Route>

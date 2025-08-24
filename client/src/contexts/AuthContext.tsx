@@ -28,13 +28,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user in localStorage
-    const storedUser = localStorage.getItem('school_auth_user');
-    if (storedUser) {
+    // Check for stored user and token in localStorage
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    
+    if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
       } catch (error) {
-        localStorage.removeItem('school_auth_user');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     }
     setIsLoading(false);
@@ -43,34 +46,45 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call - in real app, this would be an actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Demo credentials
-    if (email === 'admin@school.edu' && password === 'password') {
-      const adminUser: User = {
-        id: '1',
-        username: 'admin',
-        email: 'admin@school.edu',
-        role: 'admin',
-        firstName: 'John',
-        lastName: 'Smith',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100'
-      };
+    try {
+      // Check if user is already stored in localStorage (called after API login)
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        setIsLoading(false);
+        return true;
+      }
       
-      setUser(adminUser);
-      localStorage.setItem('school_auth_user', JSON.stringify(adminUser));
+      // Fallback demo credentials for development
+      if (email === 'admin@school.edu' && password === 'password') {
+        const adminUser: User = {
+          id: '1',
+          username: 'admin',
+          email: 'admin@school.edu',
+          role: 'admin',
+          firstName: 'John',
+          lastName: 'Smith',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100'
+        };
+        
+        setUser(adminUser);
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        setIsLoading(false);
+        return true;
+      }
+      
       setIsLoading(false);
-      return true;
+      return false;
+    } catch (error) {
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('school_auth_user');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const value = {

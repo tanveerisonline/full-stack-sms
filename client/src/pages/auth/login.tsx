@@ -28,8 +28,8 @@ export default function Login() {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'admin@school.edu',
-      password: 'password',
+      email: 'superadmin@edumanage.pro',
+      password: 'superadmin123',
       rememberMe: false,
     },
   });
@@ -37,12 +37,33 @@ export default function Login() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      const success = await login(data.email, data.password);
-      if (success) {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: data.email,
+          password: data.password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.token) {
+        // Store token and user data
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        
+        // Call AuthContext login to update state
+        await login(data.email, data.password);
+        
         addToast('Login successful! Welcome to EduManage Pro.', 'success');
-        setLocation('/dashboard');
+        
+        // Use role-based redirect from server
+        setLocation(result.redirectTo || '/dashboard');
       } else {
-        addToast('Invalid email or password. Please try again.', 'error');
+        addToast(result.message || 'Invalid email or password. Please try again.', 'error');
       }
     } catch (error) {
       addToast('An error occurred during login. Please try again.', 'error');
