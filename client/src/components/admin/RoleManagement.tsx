@@ -48,6 +48,8 @@ export default function RoleManagement() {
       const response = await apiRequest(`/api/super-admin/roles?search=${searchTerm}`);
       const data = await response.json();
       console.log('Roles API Response:', data);
+      console.log('Is Array:', Array.isArray(data));
+      console.log('Has roles property:', data?.roles);
       return data;
     },
   });
@@ -346,7 +348,7 @@ export default function RoleManagement() {
 
       {/* Roles List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(rolesData?.roles || []).map((role: Role) => (
+        {(Array.isArray(rolesData) ? rolesData : rolesData?.roles || []).map((role: Role) => (
           <Card key={role.id} className="h-full" data-testid={`role-card-${role.id}`}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -471,7 +473,7 @@ export default function RoleManagement() {
       </Dialog>
 
       {/* Empty State */}
-      {(!rolesLoading && (!rolesData?.roles || rolesData.roles.length === 0)) && (
+      {(!rolesLoading && (Array.isArray(rolesData) ? rolesData.length === 0 : (!rolesData?.roles || rolesData.roles.length === 0))) && (
         <Card className="py-12">
           <CardContent className="text-center">
             <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
