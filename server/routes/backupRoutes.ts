@@ -67,7 +67,7 @@ router.post('/create', async (req: AuthenticatedRequest, res: Response) => {
     const username = dbUrl.username;
     const password = dbUrl.password;
 
-    // Create pg_dump command
+    // Create pg_dump command with version compatibility
     const pgDumpCommand = `PGPASSWORD="${password}" pg_dump -h ${host} -p ${port} -U ${username} -d ${database} --verbose --clean --no-owner --no-privileges --format=custom --file="${filepath}"`;
     
     // Execute backup
