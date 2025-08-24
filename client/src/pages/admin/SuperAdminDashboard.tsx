@@ -155,13 +155,16 @@ export default function SuperAdminDashboard() {
     // Toggle user status mutation
     const toggleUserStatusMutation = useMutation({
       mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
-        return await apiRequest(`/api/super-admin/users/${userId}`, {
+        const response = await apiRequest(`/api/super-admin/users/${userId}`, {
           method: 'PUT',
           body: JSON.stringify({ isActive: !isActive }),
         });
+        return response.json();
       },
       onSuccess: () => {
+        // Force fresh data fetch
         queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
+        queryClient.refetchQueries({ queryKey: ['/api/super-admin/users'] });
       },
     });
 
