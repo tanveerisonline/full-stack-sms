@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import RoleManagement from '@/components/admin/RoleManagement';
 import SystemSettings from '@/components/admin/SystemSettings';
+import AuditLogs from '@/components/admin/AuditLogs';
 import { 
   Users, 
   Shield, 
@@ -1014,27 +1015,7 @@ export default function SuperAdminDashboard() {
 
           {selectedTab === 'settings' && <SystemSettings />}
 
-          {selectedTab === 'audit' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">Audit Logs</h2>
-                <Button variant="outline" data-testid="button-export-logs">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Logs
-                </Button>
-              </div>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center py-12">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Audit Trail</h3>
-                    <p className="text-gray-600 mb-4">View comprehensive logs of all system activities and changes.</p>
-                    <Button data-testid="button-view-audit-logs">View Audit Logs</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {selectedTab === 'audit' && <AuditLogs />}
 
           {selectedTab === 'backup' && (
             <div className="space-y-6">

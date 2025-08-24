@@ -14,7 +14,7 @@ export const auditLogs = pgTable('audit_logs', {
   newValues: text('new_values'),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const systemSettings = pgTable('system_settings', {
@@ -32,7 +32,7 @@ export const systemSettings = pgTable('system_settings', {
 // Insert schemas
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
-  timestamp: true,
+  createdAt: true,
 });
 
 export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({

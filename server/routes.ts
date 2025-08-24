@@ -174,6 +174,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const systemSettingsRoutes = (await import('./routes/systemSettingsRoutes')).default;
   app.use('/api/super-admin/settings', systemSettingsRoutes);
 
+  // Audit logs routes (super admin only)
+  const auditRoutes = (await import('./routes/auditRoutes')).default;
+  app.use('/api/super-admin/audit', auditRoutes);
+
   // Development seed endpoint (only in development)
   if (process.env.NODE_ENV === 'development') {
     app.post("/api/dev/seed", async (req: Request, res: Response) => {
