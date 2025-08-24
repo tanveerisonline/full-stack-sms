@@ -20,7 +20,7 @@ import {
   type SystemSetting,
   type Role
 } from '@shared/schema';
-import { eq, desc, count, sum, sql } from 'drizzle-orm';
+import { eq, desc, count, sum, sql, and, gte, lte } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
 const router = Router();
@@ -208,7 +208,7 @@ router.put('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     const [updatedUser] = await db
       .update(users)
-      .set({ ...updateData, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
 
@@ -363,8 +363,7 @@ router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => 
       .update(systemSettings)
       .set({ 
         ...updateData, 
-        updatedBy: req.user!.id,
-        updatedAt: new Date() 
+        updatedBy: req.user!.id 
       })
       .where(eq(systemSettings.id, settingId))
       .returning();
@@ -494,7 +493,7 @@ router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => 
   try {
     const { id } = req.params;
     const validatedData = insertSystemSettingSchema.partial().parse(req.body);
-    validatedData.updatedAt = new Date();
+    // Remove updatedAt as it's handled automatically
     
     const [setting] = await db
       .update(systemSettings)
@@ -545,7 +544,7 @@ router.put('/roles/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const validatedData = insertRoleSchema.partial().parse(req.body);
-    validatedData.updatedAt = new Date();
+    // Remove updatedAt as it's handled automatically
     
     const [role] = await db
       .update(roles)
