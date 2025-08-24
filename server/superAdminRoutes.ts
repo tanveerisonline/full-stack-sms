@@ -740,7 +740,7 @@ router.delete('/sessions/:id', async (req: AuthenticatedRequest, res: Response) 
     const [session] = await db
       .update(userSessions)
       .set({ isActive: false })
-      .where(eq(userSessions.id, id))
+      .where(eq(userSessions.id, parseInt(id)))
       .returning();
     
     if (!session) {
@@ -748,7 +748,7 @@ router.delete('/sessions/:id', async (req: AuthenticatedRequest, res: Response) 
     }
     
     await logAuditEvent(req.user!.id, 'DELETE', 'USER_SESSION', id, 
-      { terminatedSession: id }, req);
+      { terminatedSession: id }, req.ip || 'unknown');
     
     res.json({ message: 'Session terminated successfully' });
   } catch (error) {
@@ -845,8 +845,8 @@ router.get('/reports/overview', async (req: AuthenticatedRequest, res: Response)
       .where(
         startDate && endDate
           ? and(
-              gte(auditLogs.timestamp, new Date(startDate as string)),
-              lte(auditLogs.timestamp, new Date(endDate as string))
+              gte(auditLogs.createdAt, new Date(startDate as string)),
+              lte(auditLogs.createdAt, new Date(endDate as string))
             )
           : sql`true`
       )
