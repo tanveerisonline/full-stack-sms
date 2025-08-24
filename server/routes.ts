@@ -18,6 +18,24 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+// Helper function to determine redirect path based on role
+const getRedirectPath = (role: string): string => {
+  switch (role) {
+    case 'super_admin':
+      return '/super-admin';
+    case 'admin':
+      return '/admin-dashboard';
+    case 'teacher':
+      return '/teacher-dashboard';
+    case 'student':
+      return '/student-dashboard';
+    case 'parent':
+      return '/parent-dashboard';
+    default:
+      return '/dashboard';
+  }
+};
+
 // Helper function for error handling
 const handleRouteError = (res: Response, error: any) => {
   if (error instanceof z.ZodError) {
@@ -29,6 +47,54 @@ const handleRouteError = (res: Response, error: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // User registration route
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if username or email already exists
+      const [existingUsername] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, validatedData.username))
+        .limit(1);
+      
+      const [existingEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, validatedData.email))
+        .limit(1);
+
+      if (existingUsername) {
+        return res.status(409).json({ message: 'Username already exists' });
+      }
+      
+      if (existingEmail) {
+        return res.status(409).json({ message: 'Email already exists' });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
+      // Create user (pending approval)
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          ...validatedData,
+          password: hashedPassword,
+          isApproved: false, // Pending approval
+        })
+        .returning();
+
+      res.status(201).json({ 
+        message: 'Account created successfully! Please wait for admin approval.',
+        userId: newUser.id 
+      });
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
   // Authentication routes
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
@@ -51,6 +117,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!user || !user.isActive) {
         return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Check if user is approved (except for super_admin who can always login)
+      if (user.role !== 'super_admin' && !user.isApproved) {
+        return res.status(403).json({ 
+          message: 'Your account is pending approval. Please contact an administrator.' 
+        });
       }
 
       // Check password
@@ -81,7 +154,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName,
           lastName: user.lastName,
           avatar: user.avatar
-        }
+        },
+        redirectTo: getRedirectPath(user.role)
       });
     } catch (error) {
       console.error('Login error:', error);

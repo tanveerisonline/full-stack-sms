@@ -46,13 +46,32 @@ export default function Signup() {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     try {
-      // Simulate signup process
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: data.email.split('@')[0], // Use email prefix as username
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          password: data.password,
+          role: data.role,
+          phone: '',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Registration failed');
+      }
       
-      addToast('Account created successfully! Please sign in.', 'success');
+      addToast('Account created successfully! Please wait for admin approval before signing in.', 'success');
       setLocation('/login');
     } catch (error) {
-      addToast('An error occurred during signup. Please try again.', 'error');
+      addToast(error instanceof Error ? error.message : 'An error occurred during signup. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }

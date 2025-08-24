@@ -175,7 +175,10 @@ export default function SuperAdminDashboard() {
       mutationFn: async (userData: any) => {
         return await apiRequest('/api/super-admin/users', {
           method: 'POST',
-          body: JSON.stringify(userData),
+          body: JSON.stringify({
+            ...userData,
+            isApproved: true, // Super admin created users are auto-approved
+          }),
         });
       },
       onSuccess: () => {
@@ -206,6 +209,20 @@ export default function SuperAdminDashboard() {
         queryClient.refetchQueries({ queryKey: ['/api/super-admin/users'] });
         setShowEditUserModal(false);
         setEditingUser(null);
+      },
+    });
+
+    // Approve user mutation
+    const approveUserMutation = useMutation({
+      mutationFn: async (userId: number) => {
+        return await apiRequest(`/api/super-admin/users/${userId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ isApproved: true }),
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
+        queryClient.refetchQueries({ queryKey: ['/api/super-admin/users'] });
       },
     });
 
@@ -252,6 +269,12 @@ export default function SuperAdminDashboard() {
     const handleUpdateUser = () => {
       if (editingUser && editingUser.username && editingUser.email && editingUser.firstName && editingUser.lastName) {
         updateUserMutation.mutate(editingUser);
+      }
+    };
+
+    const handleApproveUser = (userId: number) => {
+      if (confirm('Are you sure you want to approve this user? They will be able to log in after approval.')) {
+        approveUserMutation.mutate(userId);
       }
     };
 
@@ -329,6 +352,13 @@ export default function SuperAdminDashboard() {
                         >
                           {user.isActive ? 'Active' : 'Inactive'}
                         </Badge>
+                        <Badge 
+                          variant={user.isApproved ? 'default' : 'destructive'}
+                          className={user.isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}
+                          data-testid={`approval-${user.id}`}
+                        >
+                          {user.isApproved ? 'Approved' : 'Pending'}
+                        </Badge>
                         <Badge variant="outline" data-testid={`role-${user.id}`}>
                           {user.role?.replace('_', ' ').toUpperCase()}
                         </Badge>
@@ -342,6 +372,18 @@ export default function SuperAdminDashboard() {
                       )}
                     </div>
                     <div className="flex space-x-2">
+                      {!user.isApproved && (
+                        <Button 
+                          size="sm" 
+                          variant="default"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleApproveUser(user.id)}
+                          disabled={approveUserMutation.isPending}
+                          data-testid={`button-approve-${user.id}`}
+                        >
+                          Approve
+                        </Button>
+                      )}
                       <Button 
                         size="sm" 
                         variant={user.isActive ? 'outline' : 'default'}

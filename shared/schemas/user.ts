@@ -16,6 +16,7 @@ export const users = pgTable('users', {
   avatar: text('avatar'),
   lastLogin: timestamp('last_login'),
   isActive: boolean('is_active').default(true),
+  isApproved: boolean('is_approved').default(false),
   loginAttempts: integer('login_attempts').default(0),
   lockedUntil: timestamp('locked_until'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
