@@ -134,7 +134,7 @@ router.get('/dashboard/activities', async (req: AuthenticatedRequest, res: Respo
       .limit(15);
 
     // Get user names for activities
-    const userIds = activities.map(a => a.userId).filter(Boolean);
+    const userIds = activities.map(a => a.userId).filter((id): id is number => id !== null);
     const activityUsers = userIds.length > 0 ? await db
       .select({
         id: users.id,
