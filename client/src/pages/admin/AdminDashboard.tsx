@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ interface FinancialData {
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const [location, navigate] = useLocation();
 
   // Fetch dashboard statistics
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -269,7 +271,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Button 
                 className="h-20 flex flex-col" 
-                onClick={() => window.location.href = '/student-management'}
+                onClick={() => navigate('/students')}
                 data-testid="button-manage-students"
               >
                 <Users className="h-6 w-6 mb-2" />
@@ -278,7 +280,7 @@ export default function AdminDashboard() {
               <Button 
                 className="h-20 flex flex-col" 
                 variant="outline"
-                onClick={() => window.location.href = '/hr'}
+                onClick={() => navigate('/hr')}
                 data-testid="button-manage-teachers"
               >
                 <GraduationCap className="h-6 w-6 mb-2" />
@@ -287,7 +289,7 @@ export default function AdminDashboard() {
               <Button 
                 className="h-20 flex flex-col" 
                 variant="outline"
-                onClick={() => window.location.href = '/academic'}
+                onClick={() => navigate('/academic/curriculum')}
                 data-testid="button-view-classes"
               >
                 <BookOpen className="h-6 w-6 mb-2" />
@@ -296,7 +298,7 @@ export default function AdminDashboard() {
               <Button 
                 className="h-20 flex flex-col" 
                 variant="outline"
-                onClick={() => window.location.href = '/financial'}
+                onClick={() => navigate('/financial')}
                 data-testid="button-financial-reports"
               >
                 <DollarSign className="h-6 w-6 mb-2" />
