@@ -10,8 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit2, Trash2, Shield, Users, Settings, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, Users, Settings, Search, UserCheck, UserX } from 'lucide-react';
+import UserAssignments from './UserAssignments';
 
 interface Role {
   id: number;
@@ -27,14 +29,29 @@ interface PermissionCategory {
   [key: string]: string[];
 }
 
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+  status: string;
+  isApproved: boolean;
+}
+
 export default function RoleManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedRoleForAssignment, setSelectedRoleForAssignment] = useState<string>('');
   const [newRole, setNewRole] = useState({
     name: '',
     description: '',
@@ -63,6 +80,15 @@ export default function RoleManagement() {
       const data = await response.json();
       console.log('Permissions API Response:', data);
       return data;
+    },
+  });
+
+  // Fetch eligible users (approved and active)
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['/api/super-admin/roles/users/eligible', userSearchTerm],
+    queryFn: async () => {
+      const response = await apiRequest(`/api/super-admin/roles/users/eligible?search=${userSearchTerm}`);
+      return response.json();
     },
   });
 
@@ -181,6 +207,45 @@ export default function RoleManagement() {
     },
   });
 
+  // Assign role mutation
+  const assignRoleMutation = useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: number; roleId: number }) => {
+      const response = await apiRequest('/api/super-admin/roles/assign', {
+        method: 'POST',
+        body: JSON.stringify({ userId, roleId }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles/users/eligible'] });
+      setShowAssignModal(false);
+      setSelectedUser(null);
+      setSelectedRoleForAssignment('');
+      toast({ title: 'Success', description: 'Role assigned successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to assign role', variant: 'destructive' });
+    },
+  });
+
+  // Remove role mutation
+  const removeRoleMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest('/api/super-admin/roles/remove', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/roles/users/eligible'] });
+      toast({ title: 'Success', description: 'Role removed successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to remove role', variant: 'destructive' });
+    },
+  });
+
   const handleCreateRole = () => {
     if (newRole.name.trim()) {
       createRoleMutation.mutate(newRole);
@@ -201,6 +266,26 @@ export default function RoleManagement() {
 
   const handleToggleRoleStatus = (roleId: number) => {
     toggleRoleStatusMutation.mutate(roleId);
+  };
+
+  const handleAssignRole = (user: User) => {
+    setSelectedUser(user);
+    setShowAssignModal(true);
+  };
+
+  const handleConfirmAssign = () => {
+    if (selectedUser && selectedRoleForAssignment) {
+      assignRoleMutation.mutate({
+        userId: selectedUser.id,
+        roleId: parseInt(selectedRoleForAssignment)
+      });
+    }
+  };
+
+  const handleRemoveRole = (userId: number) => {
+    if (confirm('Are you sure you want to remove this user\'s role? They will be set to the default user role.')) {
+      removeRoleMutation.mutate(userId);
+    }
   };
 
   const handleEditRole = (role: Role) => {

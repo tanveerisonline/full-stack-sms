@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { authenticateToken, requireSuperAdmin, logAuditEvent, AuthenticatedRequest } from '../middleware/auth';
 import { db } from '../db';
 import { roles, insertRoleSchema, type Role } from '@shared/schemas';
-import { eq, desc, count, ilike, or } from 'drizzle-orm';
+import { users } from '@shared/schemas/user';
+import { eq, desc, count, ilike, or, and } from 'drizzle-orm';
 import { PERMISSIONS, DEFAULT_ROLES, getAllPermissions, PERMISSION_CATEGORIES } from '@shared/permissions';
 
 const router = Router();
@@ -337,6 +338,197 @@ router.post('/initialize', async (req: AuthenticatedRequest, res: Response) => {
   } catch (error) {
     console.error('Error initializing roles:', error);
     res.status(500).json({ message: 'Failed to initialize roles' });
+  }
+});
+
+// Get approved and active users for role assignment
+router.get('/users/eligible', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { search = '' } = req.query;
+
+    let query = db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        status: users.status,
+        isApproved: users.isApproved,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.isApproved, true),
+          eq(users.status, 'active')
+        )
+      );
+
+    if (search) {
+      query = query.where(
+        and(
+          eq(users.isApproved, true),
+          eq(users.status, 'active'),
+          or(
+            ilike(users.username, `%${search}%`),
+            ilike(users.email, `%${search}%`),
+            ilike(users.firstName, `%${search}%`),
+            ilike(users.lastName, `%${search}%`)
+          )
+        )
+      );
+    }
+
+    const eligibleUsers = await query.orderBy(desc(users.createdAt));
+
+    await logAuditEvent(
+      req.user!.id,
+      'view_eligible_users',
+      'user_management',
+      null,
+      { search, userCount: eligibleUsers.length },
+      req.ip,
+      req.get('user-agent')
+    );
+
+    res.json({ users: eligibleUsers });
+  } catch (error) {
+    console.error('Error fetching eligible users:', error);
+    res.status(500).json({ message: 'Failed to fetch eligible users' });
+  }
+});
+
+// Assign role to user
+router.post('/assign', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, roleId } = req.body;
+
+    if (!userId || !roleId) {
+      return res.status(400).json({ message: 'User ID and Role ID are required' });
+    }
+
+    // Verify user exists and is eligible (approved and active)
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.id, userId),
+          eq(users.isApproved, true),
+          eq(users.status, 'active')
+        )
+      );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found or not eligible for role assignment' });
+    }
+
+    // Verify role exists
+    const [role] = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.id, roleId));
+
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    // Get old role for audit
+    const oldRole = user.role;
+
+    // Update user's role
+    const [updatedUser] = await db
+      .update(users)
+      .set({ role: role.name })
+      .where(eq(users.id, userId))
+      .returning();
+
+    await logAuditEvent(
+      req.user!.id,
+      'assign_role',
+      'user',
+      userId.toString(),
+      { 
+        oldValues: { role: oldRole },
+        newValues: { role: role.name },
+        roleName: role.name,
+        username: user.username
+      },
+      req.ip,
+      req.get('user-agent')
+    );
+
+    res.json({
+      message: 'Role assigned successfully',
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      }
+    });
+  } catch (error) {
+    console.error('Error assigning role:', error);
+    res.status(500).json({ message: 'Failed to assign role' });
+  }
+});
+
+// Remove role from user (set to default)
+router.post('/remove', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    // Verify user exists
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get old role for audit
+    const oldRole = user.role;
+
+    // Remove role (set to default role)
+    const [updatedUser] = await db
+      .update(users)
+      .set({ role: 'user' }) // Default role
+      .where(eq(users.id, userId))
+      .returning();
+
+    await logAuditEvent(
+      req.user!.id,
+      'remove_role',
+      'user',
+      userId.toString(),
+      { 
+        oldValues: { role: oldRole },
+        newValues: { role: 'user' },
+        username: user.username
+      },
+      req.ip,
+      req.get('user-agent')
+    );
+
+    res.json({
+      message: 'Role removed successfully',
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      }
+    });
+  } catch (error) {
+    console.error('Error removing role:', error);
+    res.status(500).json({ message: 'Failed to remove role' });
   }
 });
 
