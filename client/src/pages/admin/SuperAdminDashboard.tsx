@@ -38,78 +38,37 @@ import {
   UserCheck
 } from 'lucide-react';
 
-// Mock data for dashboard
-const systemStats = {
-  totalUsers: 1247,
-  activeUsers: 1156,
-  totalStudents: 980,
-  totalTeachers: 85,
-  totalAdmins: 12,
-  systemUptime: '15 days, 8 hours',
-  errorLogs: 3,
-  failedLogins: 12,
-  revenue: 45670,
-  pendingDues: 8940
-};
+// Real data interfaces
+interface SystemStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalStudents: number;
+  totalTeachers: number;
+  totalAdmins: number;
+  systemUptime: string;
+  errorLogs: number;
+  failedLogins: number;
+  revenue: number;
+  pendingDues: number;
+}
 
-const recentActivities = [
-  {
-    id: 1,
-    user: 'John Smith',
-    action: 'Role changed to Teacher',
-    timestamp: '2025-08-23T16:30:00Z',
-    type: 'role_change',
-    severity: 'medium'
-  },
-  {
-    id: 2,
-    user: 'System',
-    action: 'Failed login attempt from 192.168.1.100',
-    timestamp: '2025-08-23T16:25:00Z',
-    type: 'security',
-    severity: 'high'
-  },
-  {
-    id: 3,
-    user: 'Sarah Wilson',
-    action: 'Created new student record',
-    timestamp: '2025-08-23T16:20:00Z',
-    type: 'user_action',
-    severity: 'low'
-  },
-  {
-    id: 4,
-    user: 'Mike Johnson',
-    action: 'Updated system settings',
-    timestamp: '2025-08-23T16:15:00Z',
-    type: 'configuration',
-    severity: 'medium'
-  }
-];
+interface Activity {
+  id: number;
+  user: string;
+  action: string;
+  timestamp: string;
+  type: string;
+  severity: string;
+  ipAddress?: string;
+}
 
-const securityAlerts = [
-  {
-    id: 1,
-    title: 'Multiple Failed Login Attempts',
-    message: '12 failed login attempts detected from IP 192.168.1.100',
-    severity: 'high',
-    timestamp: '2025-08-23T16:30:00Z'
-  },
-  {
-    id: 2,
-    title: 'Database Backup Overdue',
-    message: 'Last backup was 25 hours ago. Backup recommended.',
-    severity: 'medium',
-    timestamp: '2025-08-23T14:30:00Z'
-  },
-  {
-    id: 3,
-    title: 'Disk Space Warning',
-    message: 'Server disk usage at 85%. Consider cleanup.',
-    severity: 'medium',
-    timestamp: '2025-08-23T12:00:00Z'
-  }
-];
+interface SecurityAlert {
+  id: string;
+  title: string;
+  message: string;
+  severity: string;
+  timestamp: string;
+}
 
 export default function SuperAdminDashboard() {
   const { isAuthenticated, isLoading, user, token, loginSuccess, logout } = useSuperAuth();
@@ -117,9 +76,52 @@ export default function SuperAdminDashboard() {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
+  // Fetch real dashboard data
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/super-admin/dashboard/stats'],
+    enabled: isAuthenticated && !!token,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
+    queryKey: ['/api/super-admin/dashboard/activities'],
+    enabled: isAuthenticated && !!token,
+    refetchInterval: 60000, // Refresh every minute
+  });
+
+  const { data: securityData, isLoading: securityLoading } = useQuery({
+    queryKey: ['/api/super-admin/dashboard/security'],
+    enabled: isAuthenticated && !!token,
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+
+  // Use real data or fallback to defaults
+  const systemStats: SystemStats = statsData || {
+    totalUsers: 0,
+    activeUsers: 0,
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalAdmins: 0,
+    systemUptime: '0 days, 0 hours',
+    errorLogs: 0,
+    failedLogins: 0,
+    revenue: 0,
+    pendingDues: 0
+  };
+
+  const recentActivities: Activity[] = activitiesData?.activities || [];
+  const securityAlerts: SecurityAlert[] = securityData?.alerts || [];
+  
   const handleLogout = () => {
     logout();
     window.location.reload();
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
   // User Management Interface Component
@@ -676,11 +678,11 @@ export default function SuperAdminDashboard() {
             </div>
             <div className="flex items-center space-x-2">
               <Clock className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">Uptime: {systemStats.systemUptime}</span>
+              <span className="text-sm text-gray-600">Uptime: {statsLoading ? '...' : systemStats.systemUptime}</span>
             </div>
             <div className="flex items-center space-x-2">
               <AlertTriangle className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm text-gray-600">{systemStats.errorLogs} Alerts</span>
+              <span className="text-sm text-gray-600">{statsLoading ? '...' : systemStats.errorLogs} Alerts</span>
             </div>
           </div>
         </div>
@@ -874,9 +876,9 @@ export default function SuperAdminDashboard() {
                     <Users className="h-4 w-4 text-blue-600" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{systemStats.totalUsers.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{statsLoading ? '...' : systemStats.totalUsers.toLocaleString()}</div>
                     <div className="text-xs text-gray-600 mt-1">
-                      <span className="text-green-600">{systemStats.activeUsers}</span> active
+                      <span className="text-green-600">{statsLoading ? '...' : systemStats.activeUsers}</span> active
                     </div>
                   </CardContent>
                 </Card>
@@ -887,7 +889,7 @@ export default function SuperAdminDashboard() {
                     <Users className="h-4 w-4 text-green-600" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{systemStats.totalStudents.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{statsLoading ? '...' : systemStats.totalStudents.toLocaleString()}</div>
                     <div className="text-xs text-gray-600 mt-1">Active enrollments</div>
                   </CardContent>
                 </Card>
@@ -898,7 +900,7 @@ export default function SuperAdminDashboard() {
                     <Users className="h-4 w-4 text-purple-600" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{systemStats.totalTeachers}</div>
+                    <div className="text-2xl font-bold">{statsLoading ? '...' : systemStats.totalTeachers}</div>
                     <div className="text-xs text-gray-600 mt-1">Active staff</div>
                   </CardContent>
                 </Card>
@@ -909,9 +911,9 @@ export default function SuperAdminDashboard() {
                     <DollarSign className="h-4 w-4 text-yellow-600" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${systemStats.revenue.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{statsLoading ? '...' : formatCurrency(systemStats.revenue)}</div>
                     <div className="text-xs text-gray-600 mt-1">
-                      <span className="text-red-600">${systemStats.pendingDues}</span> pending
+                      <span className="text-red-600">{statsLoading ? '...' : formatCurrency(systemStats.pendingDues)}</span> pending
                     </div>
                   </CardContent>
                 </Card>
