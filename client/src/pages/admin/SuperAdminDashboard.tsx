@@ -122,6 +122,8 @@ export default function SuperAdminDashboard() {
     const queryClient = useQueryClient();
     const [userSearchQuery, setUserSearchQuery] = useState('');
     const [showAddUserModal, setShowAddUserModal] = useState(false);
+    const [showEditUserModal, setShowEditUserModal] = useState(false);
+    const [editingUser, setEditingUser] = useState<any>(null);
     const [newUser, setNewUser] = useState({
       username: '',
       email: '',
@@ -191,6 +193,22 @@ export default function SuperAdminDashboard() {
       },
     });
 
+    // Update user mutation
+    const updateUserMutation = useMutation({
+      mutationFn: async (userData: any) => {
+        return await apiRequest(`/api/super-admin/users/${userData.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(userData),
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
+        queryClient.refetchQueries({ queryKey: ['/api/super-admin/users'] });
+        setShowEditUserModal(false);
+        setEditingUser(null);
+      },
+    });
+
     const handleAddUser = () => {
       if (newUser.username && newUser.email && newUser.password && newUser.firstName && newUser.lastName) {
         addUserMutation.mutate(newUser);
@@ -214,6 +232,26 @@ export default function SuperAdminDashboard() {
       const action = user.isActive ? 'deactivate' : 'activate';
       if (confirm(`Are you sure you want to ${action} this user?`)) {
         toggleUserStatusMutation.mutate({ userId: user.id, isActive: user.isActive });
+      }
+    };
+
+    const handleEditUser = (user: any) => {
+      setEditingUser({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        phone: user.phone || '',
+        password: '' // Don't pre-fill password for security
+      });
+      setShowEditUserModal(true);
+    };
+
+    const handleUpdateUser = () => {
+      if (editingUser && editingUser.username && editingUser.email && editingUser.firstName && editingUser.lastName) {
+        updateUserMutation.mutate(editingUser);
       }
     };
 
@@ -316,6 +354,7 @@ export default function SuperAdminDashboard() {
                       <Button 
                         size="sm" 
                         variant="outline" 
+                        onClick={() => handleEditUser(user)}
                         data-testid={`button-edit-${user.id}`}
                       >
                         <Edit2 className="w-4 h-4" />
@@ -431,6 +470,111 @@ export default function SuperAdminDashboard() {
                   data-testid="button-confirm-add-user"
                 >
                   {addUserMutation.isPending ? 'Adding...' : 'Add User'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {showEditUserModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h3 className="text-lg font-semibold mb-4">Edit User</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Username</label>
+                  <Input
+                    value={editingUser?.username || ''}
+                    onChange={(e) => setEditingUser({...editingUser, username: e.target.value})}
+                    placeholder="Enter username"
+                    data-testid="input-edit-username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <Input
+                    type="email"
+                    value={editingUser?.email || ''}
+                    onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                    placeholder="Enter email"
+                    data-testid="input-edit-email"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">First Name</label>
+                    <Input
+                      value={editingUser?.firstName || ''}
+                      onChange={(e) => setEditingUser({...editingUser, firstName: e.target.value})}
+                      placeholder="First name"
+                      data-testid="input-edit-firstname"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Last Name</label>
+                    <Input
+                      value={editingUser?.lastName || ''}
+                      onChange={(e) => setEditingUser({...editingUser, lastName: e.target.value})}
+                      placeholder="Last name"
+                      data-testid="input-edit-lastname"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Password (leave empty to keep current)</label>
+                  <Input
+                    type="password"
+                    value={editingUser?.password || ''}
+                    onChange={(e) => setEditingUser({...editingUser, password: e.target.value})}
+                    placeholder="Enter new password (optional)"
+                    data-testid="input-edit-password"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Role</label>
+                  <select
+                    value={editingUser?.role || ''}
+                    onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    data-testid="select-edit-role"
+                  >
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                    <option value="parent">Parent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <Input
+                    value={editingUser?.phone || ''}
+                    onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})}
+                    placeholder="Enter phone number"
+                    data-testid="input-edit-phone"
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <Button
+                  onClick={() => {
+                    setShowEditUserModal(false);
+                    setEditingUser(null);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                  data-testid="button-cancel-edit-user"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdateUser}
+                  className="flex-1"
+                  disabled={updateUserMutation.isPending}
+                  data-testid="button-save-edit-user"
+                >
+                  {updateUserMutation.isPending ? 'Updating...' : 'Update User'}
                 </Button>
               </div>
             </div>
@@ -795,7 +939,10 @@ export default function SuperAdminDashboard() {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-                <Button data-testid="button-create-user">
+                <Button 
+                  onClick={() => setSelectedTab('users-full')}
+                  data-testid="button-create-user"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create User
                 </Button>
