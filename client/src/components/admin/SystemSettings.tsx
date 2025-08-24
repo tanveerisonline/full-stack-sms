@@ -54,10 +54,46 @@ export default function SystemSettings() {
   const { data: settingsData, isLoading, error } = useQuery({
     queryKey: ['/api/super-admin/settings'],
     queryFn: async () => {
-      const response = await apiRequest('/api/super-admin/settings');
-      const data = await response.json();
-      return data.settings as SystemSettingsData;
+      try {
+        const response = await apiRequest('/api/super-admin/settings');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const rawData = await response.json();
+        
+        // Initialize empty structure
+        const groupedData: SystemSettingsData = {
+          general: {},
+          sms_gateway: {},
+          email_service: {},
+          payment_gateway: {}
+        };
+        
+        // API returns array of settings, need to group by category
+        if (Array.isArray(rawData)) {
+          rawData.forEach((setting: any) => {
+            const category = setting.category as keyof SystemSettingsData;
+            if (groupedData[category]) {
+              groupedData[category][setting.key] = {
+                id: setting.id,
+                value: setting.value,
+                description: setting.description || '',
+                isEncrypted: setting.isEncrypted || false,
+                updatedAt: setting.updatedAt
+              };
+            }
+          });
+        }
+        
+        return groupedData;
+      } catch (error) {
+        console.error('Query function error:', error);
+        throw error;
+      }
     },
+    retry: false,
   });
 
   // Initialize form data when settings are loaded
