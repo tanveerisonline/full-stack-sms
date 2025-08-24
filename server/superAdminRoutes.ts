@@ -20,7 +20,7 @@ import {
   type SystemSetting,
   type Role
 } from '@shared/schema';
-import { eq, desc, count, sum, sql, and, gte, lte } from 'drizzle-orm';
+import { eq, desc, count, sum, sql, and, gte, lte, inArray } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
 const router = Router();
@@ -143,7 +143,7 @@ router.get('/dashboard/activities', async (req: AuthenticatedRequest, res: Respo
         username: users.username
       })
       .from(users)
-      .where(sql`${users.id} = ANY(${userIds})`) : [];
+      .where(inArray(users.id, userIds)) : [];
 
     const formattedActivities = activities.map(activity => {
       const user = activityUsers.find(u => u.id === activity.userId);

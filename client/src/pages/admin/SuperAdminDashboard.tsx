@@ -961,19 +961,38 @@ export default function SuperAdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-3">
-                      <Button className="h-20 flex flex-col items-center justify-center" data-testid="button-add-user">
+                      <Button 
+                        className="h-20 flex flex-col items-center justify-center" 
+                        onClick={() => setSelectedTab('users-full')}
+                        data-testid="button-add-user"
+                      >
                         <UserPlus className="w-6 h-6 mb-2" />
                         <span className="text-sm">Add User</span>
                       </Button>
-                      <Button variant="outline" className="h-20 flex flex-col items-center justify-center" data-testid="button-configure-roles">
+                      <Button 
+                        variant="outline" 
+                        className="h-20 flex flex-col items-center justify-center" 
+                        onClick={() => setSelectedTab('roles')}
+                        data-testid="button-configure-roles"
+                      >
                         <Shield className="w-6 h-6 mb-2" />
                         <span className="text-sm">Configure Roles</span>
                       </Button>
-                      <Button variant="outline" className="h-20 flex flex-col items-center justify-center" data-testid="button-view-logs">
+                      <Button 
+                        variant="outline" 
+                        className="h-20 flex flex-col items-center justify-center" 
+                        onClick={() => setSelectedTab('audit')}
+                        data-testid="button-view-logs"
+                      >
                         <FileText className="w-6 h-6 mb-2" />
                         <span className="text-sm">View Logs</span>
                       </Button>
-                      <Button variant="outline" className="h-20 flex flex-col items-center justify-center" data-testid="button-backup-now">
+                      <Button 
+                        variant="outline" 
+                        className="h-20 flex flex-col items-center justify-center" 
+                        onClick={() => setSelectedTab('backup')}
+                        data-testid="button-backup-now"
+                      >
                         <Database className="w-6 h-6 mb-2" />
                         <span className="text-sm">Backup Now</span>
                       </Button>
