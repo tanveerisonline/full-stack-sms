@@ -100,18 +100,22 @@ export async function logAuditEvent(
   userAgent?: string
 ) {
   try {
+    // Safely serialize changes object, avoiding circular references
+    const safeChanges = changes ? JSON.parse(JSON.stringify(changes)) : null;
+    
     await db.insert(auditLogs).values({
       userId,
       action,
       resourceType,
       resourceId,
-      oldValues: changes.oldValues ? JSON.stringify(changes.oldValues) : null,
-      newValues: changes.newValues ? JSON.stringify(changes.newValues) : null,
+      oldValues: safeChanges?.oldValues ? JSON.stringify(safeChanges.oldValues) : null,
+      newValues: safeChanges?.newValues ? JSON.stringify(safeChanges.newValues) : JSON.stringify(safeChanges),
       ipAddress,
       userAgent
     });
   } catch (error) {
     console.error('Failed to log audit event:', error);
+    // Don't throw the error to prevent it from affecting the main request
   }
 }
 

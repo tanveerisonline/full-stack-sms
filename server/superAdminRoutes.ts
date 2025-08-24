@@ -505,7 +505,7 @@ router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => 
       return res.status(404).json({ message: 'System setting not found' });
     }
     
-    await logAuditEvent(req.user!.id, 'UPDATE', 'SYSTEM_SETTING', id, validatedData, req);
+    await logAuditEvent(req.user!.id, 'UPDATE', 'SYSTEM_SETTING', id.toString(), validatedData, req.ip, req.get('user-agent'));
     
     res.json(setting);
   } catch (error) {
@@ -530,8 +530,8 @@ router.post('/roles', async (req: AuthenticatedRequest, res: Response) => {
     const validatedData = insertRoleSchema.parse(req.body);
     const [role] = await db.insert(roles).values(validatedData).returning();
     
-    await logAuditEvent(req.user!.id, 'CREATE', 'ROLE', role.id, 
-      { name: role.name, permissions: role.permissions }, req);
+    await logAuditEvent(req.user!.id, 'CREATE', 'ROLE', role.id.toString(), 
+      { name: role.name, permissions: role.permissions }, req.ip, req.get('user-agent'));
     
     res.status(201).json(role);
   } catch (error) {
@@ -556,7 +556,7 @@ router.put('/roles/:id', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({ message: 'Role not found' });
     }
     
-    await logAuditEvent(req.user!.id, 'UPDATE', 'ROLE', id, validatedData, req);
+    await logAuditEvent(req.user!.id, 'UPDATE', 'ROLE', id.toString(), validatedData, req.ip, req.get('user-agent'));
     
     res.json(role);
   } catch (error) {
@@ -668,7 +668,7 @@ router.post('/backups', async (req: AuthenticatedRequest, res: Response) => {
       createdAt: new Date()
     };
     
-    await logAuditEvent(req.user!.id, 'CREATE', 'BACKUP', backup.id, backup, req);
+    await logAuditEvent(req.user!.id, 'CREATE', 'BACKUP', backup.id.toString(), backup, req.ip, req.get('user-agent'));
     
     res.status(201).json(backup);
   } catch (error) {
