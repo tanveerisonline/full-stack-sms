@@ -665,7 +665,7 @@ export default function RoleManagement() {
                         <div className="flex flex-col gap-1">
                           <Badge 
                             variant={
-                              user.role === 'super_admin' ? 'destructive' :
+                              (user.role === 'super_admin' || user.role === 'Super Administrator') ? 'destructive' :
                               user.role === 'admin' ? 'secondary' :
                               user.role === 'teacher' ? 'default' :
                               'outline'

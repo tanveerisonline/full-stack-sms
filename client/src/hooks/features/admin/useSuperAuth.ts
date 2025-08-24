@@ -91,7 +91,7 @@ function useSuperAuth() {
     },
     onSuccess: (data) => {
       console.log('Login success:', data);
-      if (data.user.role === 'super_admin') {
+      if (data.user.role === 'super_admin' || data.user.role === 'Super Administrator') {
         // Store immediately in localStorage
         localStorage.setItem('super_admin_token', data.token);
         localStorage.setItem('super_admin_user', JSON.stringify(data.user));
@@ -124,7 +124,7 @@ function useSuperAuth() {
   // Use currentUser as the primary source of truth, fallback to query user
   const activeUser = currentUser || user;
   // Include login success state to immediately show as authenticated
-  const isAuthenticated = (!!token || loginMutation.isSuccess) && !!activeUser && activeUser.role === 'super_admin';
+  const isAuthenticated = (!!token || loginMutation.isSuccess) && !!activeUser && (activeUser.role === 'super_admin' || activeUser.role === 'Super Administrator');
 
   return {
     user: activeUser,

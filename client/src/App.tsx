@@ -46,7 +46,7 @@ function AuthenticatedRoutes() {
   return (
     <Switch>
       {/* Super Admin Dashboard - render without Layout, only for super_admin role */}
-      {user?.role === 'super_admin' && (
+      {(user?.role === 'super_admin' || user?.role === 'Super Administrator') && (
         <>
           <Route path="/" component={() => <Redirect to="/super-admin" />} />
           <Route path="/super-admin" component={SuperAdminDashboard} />
