@@ -16,6 +16,8 @@ import ForgotPassword from "@/pages/auth/forgot-password";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import UserProfile from "@/pages/profile/UserProfile";
+import TeacherProfiles from "@/pages/hr/profiles";
+import PayrollManagement from "@/pages/hr/payroll";
 import Settings from "@/pages/settings";
 import StudentRegistration from "@/pages/student-management/registration";
 import StudentProfiles from "@/pages/student-management/profiles";
@@ -95,6 +97,8 @@ function AuthenticatedRoutes() {
             <Route path="/financial" component={Financial} />
             <Route path="/library" component={Library} />
             <Route path="/hr" component={HR} />
+            <Route path="/hr/profiles" component={TeacherProfiles} />
+            <Route path="/hr/payroll" component={PayrollManagement} />
             <Route path="/facilities" component={Facilities} />
             <Route path="/transportation" component={Transportation} />
             <Route path="/hostel" component={Hostel} />

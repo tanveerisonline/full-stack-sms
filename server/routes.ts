@@ -16,7 +16,7 @@ import {
   insertUserSchema, insertStudentSchema, insertTeacherSchema, insertClassSchema,
   insertAssignmentSchema, insertGradeSchema, insertAttendanceSchema, 
   insertBookSchema, insertBookIssueSchema, insertTransactionSchema,
-  insertAnnouncementSchema, insertTimetableSchema
+  insertAnnouncementSchema, insertTimetableSchema, insertPayrollSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -724,6 +724,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedTimetableEntry = insertTimetableSchema.parse(req.body);
       const timetableEntry = await storage.createTimetableEntry(validatedTimetableEntry);
       res.status(201).json(timetableEntry);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Payroll management routes
+  app.get("/api/payroll", async (req: Request, res: Response) => {
+    try {
+      const payrollRecords = await storage.getPayroll();
+      res.json(payrollRecords);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.get("/api/payroll/stats", async (req: Request, res: Response) => {
+    try {
+      const payrollRecords = await storage.getPayroll();
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      
+      const thisMonthRecords = payrollRecords.filter((record: any) => {
+        const recordMonth = new Date(Date.parse(record.month + " 1, " + record.year)).getMonth();
+        const recordYear = parseInt(record.year);
+        return recordMonth === currentMonth && recordYear === currentYear;
+      });
+
+      const stats = {
+        totalMonthly: thisMonthRecords.reduce((sum: number, record: any) => sum + Number(record.netSalary), 0),
+        paidThisMonth: thisMonthRecords.filter((record: any) => record.status === 'paid').length,
+        pending: payrollRecords.filter((record: any) => record.status === 'pending').length,
+        averageSalary: payrollRecords.length > 0 ? 
+          Math.round(payrollRecords.reduce((sum: number, record: any) => sum + Number(record.netSalary), 0) / payrollRecords.length) : 0
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.post("/api/payroll", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertPayrollSchema.parse(req.body);
+      const payrollRecord = await storage.createPayroll(validatedData);
+      res.status(201).json(payrollRecord);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.put("/api/payroll/:id", async (req: Request, res: Response) => {
+    try {
+      const payrollId = parseInt(req.params.id);
+      const validatedData = insertPayrollSchema.partial().parse(req.body);
+      const payrollRecord = await storage.updatePayroll(payrollId, validatedData);
+      
+      if (!payrollRecord) {
+        return res.status(404).json({ message: "Payroll record not found" });
+      }
+      
+      res.json(payrollRecord);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.put("/api/payroll/:id/status", async (req: Request, res: Response) => {
+    try {
+      const payrollId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!['pending', 'approved', 'paid'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const payrollRecord = await storage.updatePayroll(payrollId, { status });
+      
+      if (!payrollRecord) {
+        return res.status(404).json({ message: "Payroll record not found" });
+      }
+      
+      res.json(payrollRecord);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.delete("/api/payroll/:id", async (req: Request, res: Response) => {
+    try {
+      const payrollId = parseInt(req.params.id);
+      await storage.deletePayroll(payrollId);
+      res.status(204).send();
     } catch (error) {
       handleRouteError(res, error);
     }

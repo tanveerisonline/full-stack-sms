@@ -1,13 +1,13 @@
 import { 
   users, students, teachers, classes, assignments, grades, attendance, 
-  books, bookIssues, transactions, announcements, timetable,
+  books, bookIssues, transactions, announcements, timetable, payroll,
   type User, type Student, type Teacher, type Class, type Assignment, 
   type Grade, type Attendance, type Book, type BookIssue, type Transaction, 
-  type Announcement, type Timetable,
+  type Announcement, type Timetable, type Payroll,
   type InsertUser, type InsertStudent, type InsertTeacher, type InsertClass,
   type InsertAssignment, type InsertGrade, type InsertAttendance, 
   type InsertBook, type InsertBookIssue, type InsertTransaction,
-  type InsertAnnouncement, type InsertTimetable
+  type InsertAnnouncement, type InsertTimetable, type InsertPayroll
 } from '@shared/schema';
 import { db } from './db';
 import { eq, desc, and, like, or } from 'drizzle-orm';
@@ -97,6 +97,13 @@ export interface IStorage {
   createTimetableEntry(timetableEntry: InsertTimetable): Promise<Timetable>;
   updateTimetableEntry(id: number, timetableEntry: Partial<InsertTimetable>): Promise<Timetable>;
   deleteTimetableEntry(id: number): Promise<void>;
+  
+  // Payroll
+  getPayroll(): Promise<Payroll[]>;
+  getPayrollRecord(id: number): Promise<Payroll | undefined>;
+  createPayroll(payroll: InsertPayroll): Promise<Payroll>;
+  updatePayroll(id: number, payroll: Partial<InsertPayroll>): Promise<Payroll>;
+  deletePayroll(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -409,6 +416,87 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTimetableEntry(id: number): Promise<void> {
     await db.delete(timetable).where(eq(timetable.id, id));
+  }
+
+  // Payroll
+  async getPayroll(): Promise<Payroll[]> {
+    return await db.select({
+      id: payroll.id,
+      teacherId: payroll.teacherId,
+      teacherName: teachers.firstName,
+      employeeId: teachers.employeeId,
+      month: payroll.month,
+      year: payroll.year,
+      basicSalary: payroll.basicSalary,
+      allowances: payroll.allowances,
+      deductions: payroll.deductions,
+      overtime: payroll.overtime,
+      bonus: payroll.bonus,
+      grossSalary: payroll.grossSalary,
+      netSalary: payroll.netSalary,
+      status: payroll.status,
+      notes: payroll.notes,
+      createdAt: payroll.createdAt,
+    })
+    .from(payroll)
+    .leftJoin(teachers, eq(payroll.teacherId, teachers.id))
+    .orderBy(desc(payroll.createdAt));
+  }
+
+  async getPayrollRecord(id: number): Promise<Payroll | undefined> {
+    const [record] = await db.select().from(payroll).where(eq(payroll.id, id));
+    return record || undefined;
+  }
+
+  async createPayroll(insertPayroll: InsertPayroll): Promise<Payroll> {
+    // Calculate gross and net salary
+    const basicSalary = Number(insertPayroll.basicSalary) || 0;
+    const allowances = Number(insertPayroll.allowances) || 0;
+    const overtime = Number(insertPayroll.overtime) || 0;
+    const bonus = Number(insertPayroll.bonus) || 0;
+    const deductions = Number(insertPayroll.deductions) || 0;
+    
+    const grossSalary = basicSalary + allowances + overtime + bonus;
+    const netSalary = grossSalary - deductions;
+
+    const [record] = await db.insert(payroll).values({
+      ...insertPayroll,
+      grossSalary: grossSalary.toString(),
+      netSalary: netSalary.toString(),
+    }).returning();
+    return record;
+  }
+
+  async updatePayroll(id: number, updatePayroll: Partial<InsertPayroll>): Promise<Payroll> {
+    // Recalculate if salary components are being updated
+    if (updatePayroll.basicSalary || updatePayroll.allowances || 
+        updatePayroll.overtime || updatePayroll.bonus || updatePayroll.deductions) {
+      
+      const [currentRecord] = await db.select().from(payroll).where(eq(payroll.id, id));
+      if (currentRecord) {
+        const basicSalary = Number(updatePayroll.basicSalary ?? currentRecord.basicSalary) || 0;
+        const allowances = Number(updatePayroll.allowances ?? currentRecord.allowances) || 0;
+        const overtime = Number(updatePayroll.overtime ?? currentRecord.overtime) || 0;
+        const bonus = Number(updatePayroll.bonus ?? currentRecord.bonus) || 0;
+        const deductions = Number(updatePayroll.deductions ?? currentRecord.deductions) || 0;
+        
+        const grossSalary = basicSalary + allowances + overtime + bonus;
+        const netSalary = grossSalary - deductions;
+
+        updatePayroll.grossSalary = grossSalary.toString();
+        updatePayroll.netSalary = netSalary.toString();
+      }
+    }
+
+    const [record] = await db.update(payroll)
+      .set(updatePayroll)
+      .where(eq(payroll.id, id))
+      .returning();
+    return record;
+  }
+
+  async deletePayroll(id: number): Promise<void> {
+    await db.delete(payroll).where(eq(payroll.id, id));
   }
 }
 

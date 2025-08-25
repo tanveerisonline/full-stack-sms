@@ -151,7 +151,7 @@ export default function HR() {
   };
 
   // Filter teachers based on search and filters
-  const filteredTeachers = teachers.filter((teacher: Teacher) => {
+  const filteredTeachers = Array.isArray(teachers) ? teachers.filter((teacher: Teacher) => {
     const matchesSearch = 
       teacher.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacher.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,9 +162,9 @@ export default function HR() {
     const matchesStatus = !filterStatus || teacher.status === filterStatus;
     
     return matchesSearch && matchesDepartment && matchesStatus;
-  });
+  }) : [];
 
-  const departments = [...new Set(teachers.map((t: Teacher) => (t as any).department).filter(Boolean))];
+  const departments = Array.isArray(teachers) ? [...new Set(teachers.map((t: Teacher) => (t as any).department).filter(Boolean))] : [];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -196,7 +196,7 @@ export default function HR() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Teachers</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-total-teachers">
-                    {stats?.total || teachers.length}
+                    {stats?.total || (Array.isArray(teachers) ? teachers.length : 0)}
                   </p>
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function HR() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Active Teachers</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-active-teachers">
-                    {stats?.active || teachers.filter((t: Teacher) => t.status === 'active').length}
+                    {stats?.active || (Array.isArray(teachers) ? teachers.filter((t: Teacher) => t.status === 'active').length : 0)}
                   </p>
                 </div>
               </div>

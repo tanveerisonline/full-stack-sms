@@ -8,6 +8,7 @@ export * from './financial';
 export * from './library';
 export * from './communication';
 export * from './admin';
+export * from './payroll';
 
 // Import for cross-schema relations
 import { relations } from 'drizzle-orm';
