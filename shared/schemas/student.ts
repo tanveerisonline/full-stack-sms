@@ -45,10 +45,10 @@ export const studentsRelations = relations(students, ({ many }) => ({
 // Insert schemas
 export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
+  rollNumber: true, // Auto-generated
+  admissionDate: true, // Auto-generated
   createdAt: true,
   updatedAt: true,
-}).extend({
-  admissionDate: z.string().optional(),
 });
 
 // Types

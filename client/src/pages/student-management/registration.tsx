@@ -1,51 +1,122 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { StudentForm } from '@/components/features/student';
-import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
+import { StudentTable, StudentForm, StudentDetailModal } from '@/components/features/student';
 
-interface Student {
+type Student = {
   id: number;
+  rollNumber: string;
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
+  email: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
   grade: string;
-  dateOfBirth: string;
-  address: string;
-  parentName: string;
-  parentContact: string;
-  avatar?: string;
-}
+  section: string | null;
+  admissionDate: string;
+  parentName: string | null;
+  parentContact: string | null;
+  parentEmail: string | null;
+  address: string | null;
+  status: string;
+  avatar: string | null;
+  bloodGroup: string | null;
+  medicalInfo: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export default function StudentRegistration() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
 
-  const handleAddStudent = async (studentData: any) => {
-    setIsLoading(true);
-    try {
-      const response = await apiRequest('/api/students', {
+  // Fetch students
+  const { data: students = [] as Student[], isLoading: isLoadingStudents } = useQuery({
+    queryKey: ['/api/students'],
+  });
+
+  // Add student mutation
+  const addStudentMutation = useMutation({
+    mutationFn: async (studentData: any) => {
+      return apiRequest('/api/students', {
         method: 'POST',
         body: studentData,
       });
-      setShowForm(false);
+    },
+    onSuccess: () => {
       toast({
         title: "Student Added",
         description: "New student has been registered successfully.",
       });
-    } catch (error: any) {
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      setShowForm(false);
+    },
+    onError: (error: any) => {
       toast({
         title: "Registration Failed",
         description: error.message || "Failed to register student. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
-    }
+    },
+  });
+
+  // Update student mutation
+  const updateStudentMutation = useMutation({
+    mutationFn: async (studentData: any) => {
+      return apiRequest(`/api/students/${editingStudent?.id}`, {
+        method: 'PUT',
+        body: studentData,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Student Updated",
+        description: "Student information has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      setEditingStudent(null);
+      setShowForm(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update student. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete student mutation
+  const deleteStudentMutation = useMutation({
+    mutationFn: async (studentId: number) => {
+      return apiRequest(`/api/students/${studentId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Student Deleted",
+        description: "Student has been removed from the system.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete student. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddStudent = (studentData: any) => {
+    addStudentMutation.mutate(studentData);
   };
 
   const handleEditStudent = (student: Student) => {
@@ -53,30 +124,16 @@ export default function StudentRegistration() {
     setShowForm(true);
   };
 
-  const handleUpdateStudent = async (studentData: any) => {
-    if (!editingStudent) return;
-    
-    setIsLoading(true);
-    try {
-      await apiRequest(`/api/students/${editingStudent.id}`, {
-        method: 'PUT',
-        body: studentData,
-      });
-      setShowForm(false);
-      setEditingStudent(null);
-      toast({
-        title: "Student Updated",
-        description: "Student information has been updated successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update student. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleUpdateStudent = (studentData: any) => {
+    updateStudentMutation.mutate(studentData);
+  };
+
+  const handleDeleteStudent = (studentId: string | number) => {
+    deleteStudentMutation.mutate(Number(studentId));
+  };
+
+  const handleViewStudent = (student: Student) => {
+    setViewingStudent(student);
   };
 
   const handleCloseForm = () => {
@@ -106,13 +163,29 @@ export default function StudentRegistration() {
         </Button>
       </div>
 
+      {/* Students Table */}
+      <StudentTable
+        students={students}
+        onEdit={handleEditStudent}
+        onDelete={handleDeleteStudent}
+        onView={handleViewStudent}
+      />
+
       {/* Student Form Modal */}
       <StudentForm
         isOpen={showForm}
         onClose={handleCloseForm}
         onSubmit={editingStudent ? handleUpdateStudent : handleAddStudent}
         student={editingStudent}
-        isLoading={isLoading}
+        isLoading={addStudentMutation.isPending || updateStudentMutation.isPending}
+      />
+
+      {/* Student Detail Modal */}
+      <StudentDetailModal
+        student={viewingStudent}
+        isOpen={!!viewingStudent}
+        onClose={() => setViewingStudent(null)}
+        onEdit={handleEditStudent}
       />
     </div>
   );
