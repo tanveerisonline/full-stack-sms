@@ -1,6 +1,27 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { ChevronRight } from 'lucide-react';
+import { 
+  ChevronRight, 
+  BookOpen, 
+  CheckCircle, 
+  MessageSquare, 
+  FileText, 
+  PieChart, 
+  Building, 
+  DollarSign, 
+  Trophy, 
+  Users, 
+  Library, 
+  GraduationCap, 
+  Truck,
+  List,
+  Calendar,
+  ClipboardList,
+  UserPlus,
+  UserCheck,
+  CreditCard,
+  User
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NAVIGATION_ITEMS } from '@/utils/constants';
@@ -34,6 +55,33 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     return location === path;
   };
 
+  const IconComponents = {
+    BookOpen,
+    CheckCircle,
+    MessageSquare,
+    FileText,
+    PieChart,
+    Building,
+    DollarSign,
+    Trophy,
+    Users,
+    Library,
+    GraduationCap,
+    Truck,
+    List,
+    Calendar,
+    ClipboardList,
+    UserPlus,
+    UserCheck,
+    CreditCard,
+    User
+  } as const;
+
+  const renderIcon = (iconName: string, className: string = "w-4 h-4") => {
+    const IconComponent = IconComponents[iconName as keyof typeof IconComponents];
+    return IconComponent ? <IconComponent className={className} /> : null;
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -54,45 +102,47 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         )}
         data-testid="sidebar"
       >
-        <nav className="p-4">
-          <div className="space-y-2">
+        <nav className="py-2 px-2">
+          <div className="space-y-1">
             {NAVIGATION_ITEMS.map((item) => (
               <div key={item.id}>
                 {item.hasSubmenu ? (
                   <div className="nav-group">
                     <Button
                       variant="ghost"
-                      className="w-full justify-between px-4 py-3 text-left text-slate-700 hover:bg-slate-50"
+                      className="w-full justify-between px-3 py-2.5 text-left text-slate-700 hover:bg-slate-50 rounded-lg"
                       onClick={() => toggleGroup(item.id)}
                       data-testid={`button-nav-group-${item.id}`}
                     >
-                      <div className="flex items-center space-x-3">
-                        <i className={`${item.icon} w-5`}></i>
-                        <span>{item.label}</span>
+                      <div className="flex items-center gap-3">
+                        {renderIcon(item.icon, "w-4 h-4 text-slate-600")}
+                        <span className="font-medium">{item.label}</span>
                       </div>
                       <ChevronRight 
                         className={cn(
-                          "w-4 h-4 transition-transform",
+                          "w-4 h-4 transition-transform text-slate-400",
                           expandedGroups.includes(item.id) && "rotate-90"
                         )}
                       />
                     </Button>
                     
                     {expandedGroups.includes(item.id) && item.submenu && (
-                      <div className="ml-8 space-y-1 mt-1">
+                      <div className="ml-6 space-y-0.5 mt-1 border-l border-slate-200 pl-3">
                         {item.submenu.map((subItem) => (
                           <Button
                             key={subItem.id}
                             variant="ghost"
                             className={cn(
-                              "w-full justify-start px-4 py-2 text-left text-slate-600 hover:bg-primary-50 hover:text-primary-700 text-sm",
-                              isActive(subItem.path) && "bg-primary-50 text-primary-700"
+                              "w-full justify-start px-3 py-2 text-left text-slate-600 hover:bg-primary-50 hover:text-primary-700 text-sm rounded-md",
+                              isActive(subItem.path) && "bg-primary-50 text-primary-700 font-medium"
                             )}
                             onClick={() => handleNavigation(subItem.path)}
                             data-testid={`button-nav-item-${subItem.id}`}
                           >
-                            <i className={`${subItem.icon} w-4 mr-3`}></i>
-                            <span>{subItem.label}</span>
+                            <div className="flex items-center gap-2.5">
+                              {renderIcon(subItem.icon, "w-3.5 h-3.5")}
+                              <span>{subItem.label}</span>
+                            </div>
                           </Button>
                         ))}
                       </div>
@@ -102,14 +152,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start px-4 py-3 text-left text-slate-700 hover:bg-primary-50 hover:text-primary-700",
-                      isActive(item.path!) && "bg-primary-50 text-primary-700"
+                      "w-full justify-start px-3 py-2.5 text-left text-slate-700 hover:bg-primary-50 hover:text-primary-700 rounded-lg",
+                      isActive(item.path!) && "bg-primary-50 text-primary-700 font-medium"
                     )}
                     onClick={() => handleNavigation(item.path!)}
                     data-testid={`button-nav-item-${item.id}`}
                   >
-                    <i className={`${item.icon} w-5 mr-3`}></i>
-                    <span>{item.label}</span>
+                    <div className="flex items-center gap-3">
+                      {renderIcon(item.icon, "w-4 h-4 text-slate-600")}
+                      <span className="font-medium">{item.label}</span>
+                    </div>
                   </Button>
                 )}
               </div>

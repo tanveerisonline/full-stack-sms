@@ -92,88 +92,88 @@ export const NAVIGATION_ITEMS = [
   {
     id: 'academic-management',
     label: 'Academic Management',
-    icon: 'fas fa-book',
+    icon: 'BookOpen',
     hasSubmenu: true,
     submenu: [
-      { id: 'curriculum', label: 'Curriculum & Courses', icon: 'fas fa-list', path: '/academic/curriculum' },
-      { id: 'scheduling', label: 'Class Scheduling', icon: 'fas fa-calendar-alt', path: '/academic/scheduling' },
-      { id: 'assignments', label: 'Assignment Hub', icon: 'fas fa-clipboard-list', path: '/academic/assignments' }
+      { id: 'curriculum', label: 'Curriculum & Courses', icon: 'List', path: '/academic/curriculum' },
+      { id: 'scheduling', label: 'Class Scheduling', icon: 'Calendar', path: '/academic/scheduling' },
+      { id: 'assignments', label: 'Assignment Hub', icon: 'ClipboardList', path: '/academic/assignments' }
     ]
   },
   {
     id: 'attendance',
     label: 'Attendance System',
-    icon: 'fas fa-check-circle',
+    icon: 'CheckCircle',
     path: '/attendance'
   },
   {
     id: 'communication',
     label: 'Communication Hub',
-    icon: 'fas fa-comments',
+    icon: 'MessageSquare',
     path: '/communication'
   },
   {
     id: 'examinations',
     label: 'Examination System',
-    icon: 'fas fa-file-alt',
+    icon: 'FileText',
     path: '/examinations'
   },
   {
     id: 'dashboard',
     label: 'Executive Dashboard',
-    icon: 'fas fa-chart-pie',
+    icon: 'PieChart',
     path: '/dashboard'
   },
   {
     id: 'facilities',
     label: 'Facilities Management',
-    icon: 'fas fa-building',
+    icon: 'Building',
     path: '/facilities'
   },
   {
     id: 'financial',
     label: 'Financial Management',
-    icon: 'fas fa-dollar-sign',
+    icon: 'DollarSign',
     path: '/financial'
   },
   {
     id: 'grading',
     label: 'Grading & Assessment',
-    icon: 'fas fa-trophy',
+    icon: 'Trophy',
     path: '/grading'
   },
   {
     id: 'hr',
     label: 'HR & Teacher Management',
-    icon: 'fas fa-users-cog',
+    icon: 'Users',
     hasSubmenu: true,
     submenu: [
-      { id: 'teacher-registration', label: 'Teacher Registration', icon: 'fas fa-user-plus', path: '/hr' },
-      { id: 'teacher-profiles', label: 'Teacher Profiles', icon: 'fas fa-address-card', path: '/hr/profiles' },
-      { id: 'payroll', label: 'Payroll Management', icon: 'fas fa-money-check-alt', path: '/hr/payroll' }
+      { id: 'teacher-registration', label: 'Teacher Registration', icon: 'UserPlus', path: '/hr' },
+      { id: 'teacher-profiles', label: 'Teacher Profiles', icon: 'UserCheck', path: '/hr/profiles' },
+      { id: 'payroll', label: 'Payroll Management', icon: 'CreditCard', path: '/hr/payroll' }
     ]
   },
   {
     id: 'library',
     label: 'Library System',
-    icon: 'fas fa-book-open',
+    icon: 'Library',
     path: '/library'
   },
   {
     id: 'student-management',
     label: 'Student Management',
-    icon: 'fas fa-user-graduate',
+    icon: 'GraduationCap',
     hasSubmenu: true,
     submenu: [
-      { id: 'student-registration', label: 'Registration & Enrollment', icon: 'fas fa-user-plus', path: '/students' },
-      { id: 'student-profiles', label: 'Student Profiles', icon: 'fas fa-address-card', path: '/students/profiles' },
-      { id: 'id-cards', label: 'ID Card System', icon: 'fas fa-id-card', path: '/students/id-cards' }
+      { id: 'student-registration', label: 'Registration & Enrollment', icon: 'UserPlus', path: '/students' },
+      { id: 'student-profiles', label: 'Student Profiles', icon: 'User', path: '/students/profiles' },
+      { id: 'id-cards', label: 'ID Card System', icon: 'CreditCard', path: '/students/id-cards' }
     ]
   },
   {
     id: 'transportation',
     label: 'Transportation',
-    icon: 'fas fa-bus',
+    icon: 'Truck',
     path: '/transportation'
   }
 ];
