@@ -383,23 +383,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Photo upload endpoints
+  // Photo upload endpoints for object storage (no auth required for getting upload URL)
   app.post("/api/photos/upload", async (req: Request, res: Response) => {
     try {
-      // For now, return a mock upload URL
-      // In production, this would integrate with object storage
-      const uploadURL = `/uploads/photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
+      const { ObjectStorageService } = await import('./objectStorage');
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
     } catch (error) {
-      handleRouteError(res, error);
+      console.error('Photo upload error:', error);
+      // Fallback to mock URL if object storage fails
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substr(2, 9);
+      const uploadURL = `/uploads/photo-${timestamp}-${randomId}.jpg`;
+      res.json({ uploadURL });
     }
   });
 
   app.delete("/api/photos/remove", async (req: Request, res: Response) => {
     try {
-      // Mock photo removal
+      // Mock photo removal for now
       res.json({ success: true });
     } catch (error) {
+      console.error('Photo remove error:', error);
       handleRouteError(res, error);
     }
   });
