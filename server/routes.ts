@@ -312,6 +312,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher stats endpoint (must come before /:id route)
+  app.get("/api/teachers/stats", async (req: Request, res: Response) => {
+    try {
+      const teachers = await storage.getTeachers();
+      const stats = {
+        total: teachers.length,
+        active: teachers.filter(teacher => teacher.status === 'active').length,
+        newThisMonth: teachers.filter(teacher => {
+          if (!(teacher as any).hireDate) return false;
+          try {
+            const hireDate = new Date((teacher as any).hireDate);
+            const now = new Date();
+            return hireDate.getMonth() === now.getMonth() && 
+                   hireDate.getFullYear() === now.getFullYear();
+          } catch {
+            return false;
+          }
+        }).length,
+        departments: [...new Set(teachers.map(t => (t as any).department).filter(Boolean))].length,
+      };
+      res.json(stats);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
   app.get("/api/teachers/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -351,6 +377,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       await storage.deleteTeacher(id);
       res.status(204).send();
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+
+  // Photo upload endpoints
+  app.post("/api/photos/upload", async (req: Request, res: Response) => {
+    try {
+      // For now, return a mock upload URL
+      // In production, this would integrate with object storage
+      const uploadURL = `/uploads/photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
+      res.json({ uploadURL });
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  app.delete("/api/photos/remove", async (req: Request, res: Response) => {
+    try {
+      // Mock photo removal
+      res.json({ success: true });
     } catch (error) {
       handleRouteError(res, error);
     }

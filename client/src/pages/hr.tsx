@@ -143,10 +143,29 @@ export default function HR() {
   };
 
   const handleSubmitTeacher = (data: any) => {
+    // Ensure data is properly serialized
+    const teacherData = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      employeeId: data.employeeId,
+      department: data.department,
+      subject: data.subject,
+      qualification: data.qualification,
+      experience: Number(data.experience) || 0,
+      salary: Number(data.salary) || 0,
+      hireDate: data.hireDate,
+      dateOfBirth: data.dateOfBirth,
+      address: data.address,
+      avatar: data.avatar || '',
+      status: data.status || 'active'
+    };
+
     if (editingTeacher) {
-      updateTeacherMutation.mutate(data);
+      updateTeacherMutation.mutate(teacherData);
     } else {
-      addTeacherMutation.mutate(data);
+      addTeacherMutation.mutate(teacherData);
     }
   };
 
