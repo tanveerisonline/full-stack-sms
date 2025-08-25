@@ -77,8 +77,8 @@ router.get('/dashboard/stats', async (req: AuthenticatedRequest, res: Response) 
       .from(attendance)
       .where(
         and(
-          gte(attendance.date, today),
-          sql`${attendance.date} < ${tomorrow}`
+          gte(attendance.date, today.toISOString().split('T')[0]),
+          sql`${attendance.date} < ${tomorrow.toISOString().split('T')[0]}`
         )
       );
 

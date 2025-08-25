@@ -65,7 +65,7 @@ export default function AdminDashboard() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  const stats: DashboardStats = statsData?.stats || {
+  const stats: DashboardStats = (statsData as any)?.stats || {
     totalStudents: 0,
     totalTeachers: 0,
     totalClasses: 0,
@@ -75,8 +75,8 @@ export default function AdminDashboard() {
     pendingApprovals: 0
   };
 
-  const activities: Activity[] = activitiesData?.activities || [];
-  const financial: FinancialData = financialData || {
+  const activities: Activity[] = (activitiesData as any)?.activities || [];
+  const financial: FinancialData = (financialData as any) || {
     currentMonth: 0,
     lastMonth: 0,
     growth: 0,
