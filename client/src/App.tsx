@@ -33,9 +33,7 @@ import Library from "@/pages/library";
 import HR from "@/pages/hr";
 import Facilities from "@/pages/facilities";
 import Transportation from "@/pages/transportation";
-import Hostel from "@/pages/hostel";
 import Examinations from "@/pages/examinations";
-import Reports from "@/pages/reports";
 import Admin from "@/pages/admin";
 import SuperAdminDashboard from "@/pages/admin/SuperAdminDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -101,9 +99,7 @@ function AuthenticatedRoutes() {
             <Route path="/hr/payroll" component={PayrollManagement} />
             <Route path="/facilities" component={Facilities} />
             <Route path="/transportation" component={Transportation} />
-            <Route path="/hostel" component={Hostel} />
             <Route path="/examinations" component={Examinations} />
-            <Route path="/reports" component={Reports} />
             <Route path="/admin" component={Admin} />
             <Route component={NotFound} />
           </Switch>

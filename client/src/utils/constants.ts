@@ -171,21 +171,9 @@ export const NAVIGATION_ITEMS = [
     path: '/transportation'
   },
   {
-    id: 'hostel',
-    label: 'Hostel Management',
-    icon: 'fas fa-bed',
-    path: '/hostel'
-  },
-  {
     id: 'examinations',
     label: 'Examination System',
     icon: 'fas fa-file-alt',
     path: '/examinations'
-  },
-  {
-    id: 'reports',
-    label: 'Reporting & Analytics',
-    icon: 'fas fa-chart-bar',
-    path: '/reports'
   }
 ];
