@@ -17,6 +17,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock, Users, BookOpen, Plus, Eye, Edit, Trash2, BarChart3, FileText } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
+import { QuestionManager } from "@/components/features/examinations/QuestionManager";
+import { SubmissionTracker } from "@/components/features/examinations/SubmissionTracker";
+import { ResultViewer } from "@/components/features/examinations/ResultViewer";
 
 // Type definitions
 interface Exam {
@@ -88,6 +91,7 @@ export default function ExaminationPage() {
   const [activeTab, setActiveTab] = useState("exams");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -560,11 +564,27 @@ export default function ExaminationPage() {
                         </Button>
                       </div>
                       <div className="flex space-x-1">
-                        <Button variant="outline" size="sm" data-testid={`view-questions-${exam.id}`}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedExamId(exam.id);
+                            setActiveTab("questions");
+                          }}
+                          data-testid={`view-questions-${exam.id}`}
+                        >
                           <Eye className="h-3 w-3 mr-1" />
                           Questions
                         </Button>
-                        <Button variant="outline" size="sm" data-testid={`view-stats-${exam.id}`}>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedExamId(exam.id);
+                            setActiveTab("results");
+                          }}
+                          data-testid={`view-stats-${exam.id}`}
+                        >
                           <BarChart3 className="h-3 w-3 mr-1" />
                           Stats
                         </Button>
@@ -578,39 +598,51 @@ export default function ExaminationPage() {
         </TabsContent>
 
         <TabsContent value="questions" className="space-y-4">
-          <Card>
-            <CardContent className="py-8 text-center">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Question Management</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Question management interface will be implemented here
-              </p>
-            </CardContent>
-          </Card>
+          {selectedExamId ? (
+            <QuestionManager examId={selectedExamId} />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Question Management</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Select an exam from the Exams tab to manage its questions
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="submissions" className="space-y-4">
-          <Card>
-            <CardContent className="py-8 text-center">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Student Submissions</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Submission tracking interface will be implemented here
-              </p>
-            </CardContent>
-          </Card>
+          {selectedExamId ? (
+            <SubmissionTracker examId={selectedExamId} />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Student Submissions</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Select an exam from the Exams tab to track student submissions
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="results" className="space-y-4">
-          <Card>
-            <CardContent className="py-8 text-center">
-              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Exam Results</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Results and analytics interface will be implemented here
-              </p>
-            </CardContent>
-          </Card>
+          {selectedExamId ? (
+            <ResultViewer examId={selectedExamId} />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Exam Results</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Select an exam from the Exams tab to view results and analytics
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

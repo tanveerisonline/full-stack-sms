@@ -1576,6 +1576,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== Question Management APIs ==========
+
+  // Get all questions for an exam
+  app.get("/api/exams/:examId/questions", async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const questions = await storage.getQuestionsByExam(examId);
+      
+      // Get options for each question
+      const questionsWithOptions = await Promise.all(
+        questions.map(async (question) => {
+          const options = await storage.getQuestionOptionsByQuestion(question.id);
+          return { ...question, options };
+        })
+      );
+      
+      res.json(questionsWithOptions);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Create a new question
+  app.post("/api/questions", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertQuestionSchema.parse(req.body);
+      const question = await storage.createQuestion(validatedData);
+      res.status(201).json(question);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Update a question
+  app.put("/api/questions/:id", async (req: Request, res: Response) => {
+    try {
+      const questionId = parseInt(req.params.id);
+      const validatedData = insertQuestionSchema.partial().parse(req.body);
+      const question = await storage.updateQuestion(questionId, validatedData);
+      
+      if (!question) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+      
+      res.json(question);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Delete a question
+  app.delete("/api/questions/:id", async (req: Request, res: Response) => {
+    try {
+      const questionId = parseInt(req.params.id);
+      await storage.deleteQuestion(questionId);
+      res.status(204).send();
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Create question option
+  app.post("/api/questions/:questionId/options", async (req: Request, res: Response) => {
+    try {
+      const questionId = parseInt(req.params.questionId);
+      const validatedData = insertQuestionOptionSchema.parse({
+        ...req.body,
+        questionId,
+      });
+      const option = await storage.createQuestionOption(validatedData);
+      res.status(201).json(option);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Update question option
+  app.put("/api/question-options/:id", async (req: Request, res: Response) => {
+    try {
+      const optionId = parseInt(req.params.id);
+      const validatedData = insertQuestionOptionSchema.partial().parse(req.body);
+      const option = await storage.updateQuestionOption(optionId, validatedData);
+      
+      if (!option) {
+        return res.status(404).json({ message: "Option not found" });
+      }
+      
+      res.json(option);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Delete question option
+  app.delete("/api/question-options/:id", async (req: Request, res: Response) => {
+    try {
+      const optionId = parseInt(req.params.id);
+      await storage.deleteQuestionOption(optionId);
+      res.status(204).send();
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // ========== Submission Tracking APIs ==========
+
+  // Get all submissions for an exam
+  app.get("/api/exams/:examId/submissions", async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const submissions = await storage.getExamSubmissionsByExam(examId);
+      res.json(submissions);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Get submissions by student
+  app.get("/api/students/:studentId/submissions", async (req: Request, res: Response) => {
+    try {
+      const studentId = parseInt(req.params.studentId);
+      const submissions = await storage.getExamSubmissionsByStudent(studentId);
+      res.json(submissions);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Get specific submission with answers
+  app.get("/api/submissions/:id", async (req: Request, res: Response) => {
+    try {
+      const submissionId = parseInt(req.params.id);
+      const submission = await storage.getExamSubmission(submissionId);
+      
+      if (!submission) {
+        return res.status(404).json({ message: "Submission not found" });
+      }
+      
+      const answers = await storage.getSubmissionAnswersBySubmission(submissionId);
+      res.json({ ...submission, answers });
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Create exam submission
+  app.post("/api/submissions", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertExamSubmissionSchema.parse(req.body);
+      const submission = await storage.createExamSubmission(validatedData);
+      res.status(201).json(submission);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Update submission
+  app.put("/api/submissions/:id", async (req: Request, res: Response) => {
+    try {
+      const submissionId = parseInt(req.params.id);
+      const validatedData = insertExamSubmissionSchema.partial().parse(req.body);
+      const submission = await storage.updateExamSubmission(submissionId, validatedData);
+      
+      if (!submission) {
+        return res.status(404).json({ message: "Submission not found" });
+      }
+      
+      res.json(submission);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // ========== Results Viewing APIs ==========
+
+  // Get all results for an exam
+  app.get("/api/exams/:examId/results", async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const results = await storage.getExamResultsByExam(examId);
+      res.json(results);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Get results by student
+  app.get("/api/students/:studentId/results", async (req: Request, res: Response) => {
+    try {
+      const studentId = parseInt(req.params.studentId);
+      const results = await storage.getExamResultsByStudent(studentId);
+      res.json(results);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
+  // Get specific result
+  app.get("/api/results/:id", async (req: Request, res: Response) => {
+    try {
+      const resultId = parseInt(req.params.id);
+      const result = await storage.getExamResult(resultId);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Result not found" });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      handleRouteError(res, error);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
