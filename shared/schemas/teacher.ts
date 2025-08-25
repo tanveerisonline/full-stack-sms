@@ -36,8 +36,16 @@ export const teachersRelations = relations(teachers, ({ many }) => ({
   // timetable: many(timetable),
 }));
 
-// Insert schemas
-export const insertTeacherSchema = createInsertSchema(teachers).omit({
+// Insert schemas with validation
+export const insertTeacherSchema = createInsertSchema(teachers, {
+  email: z.string().email("Invalid email format"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  employeeId: z.string().min(1, "Employee ID is required"),
+  experience: z.coerce.number().min(0, "Experience must be positive").optional(),
+  salary: z.coerce.string().optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

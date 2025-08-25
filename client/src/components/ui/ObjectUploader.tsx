@@ -78,6 +78,9 @@ export function ObjectUploader({
         onComplete?.(result);
         setShowModal(false);
       })
+      .on("upload-success", (file, response) => {
+        console.log("Upload success:", file, response);
+      })
   );
 
   return (
@@ -96,6 +99,12 @@ export function ObjectUploader({
         open={showModal}
         onRequestClose={() => setShowModal(false)}
         proudlyDisplayPoweredByUppy={false}
+        showProgressDetails={true}
+        hideUploadButton={false}
+        hideRetryButton={false}
+        hidePauseResumeButton={false}
+        hideCancelButton={false}
+        browserBackButtonClose={true}
       />
     </div>
   );

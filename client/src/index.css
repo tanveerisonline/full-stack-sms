@@ -1,10 +1,10 @@
+/* CSS imports must come first */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url("https://releases.transloadit.com/uppy/v3.24.0/uppy.min.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Uppy Styles */
-@import url("https://releases.transloadit.com/uppy/v3.24.0/uppy.min.css");
 
 :root {
   --background: hsl(0 0% 100%);
