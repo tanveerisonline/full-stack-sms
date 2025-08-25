@@ -207,8 +207,8 @@ export const insertExamSchema = createInsertSchema(exams, {
   teacherId: z.number().positive("Teacher ID must be positive"),
   totalMarks: z.number().min(0, "Total marks must be non-negative"),
   duration: z.number().positive("Duration must be positive"),
-  startTime: z.string().datetime().optional(),
-  endTime: z.string().datetime().optional(),
+  startTime: z.string().optional().or(z.literal("")),
+  endTime: z.string().optional().or(z.literal("")),
 }).omit({
   id: true,
   createdAt: true,

@@ -109,10 +109,13 @@ export default function ExaminationPage() {
       duration: 60,
       instructions: "",
       status: "draft",
+      startTime: "",
+      endTime: "",
       allowLateSubmission: false,
       showResultsAfterSubmission: false,
       shuffleQuestions: false,
       maxAttempts: 1,
+      passingMarks: undefined,
     },
   });
 

@@ -969,15 +969,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/exams", async (req: Request, res: Response) => {
     try {
-      const { startTime, endTime, ...examData } = req.body;
-      const validatedData = insertExamSchema.parse({
-        ...examData,
-        startTime: startTime ? new Date(startTime) : null,
-        endTime: endTime ? new Date(endTime) : null,
-      });
-      const exam = await storage.createExam(validatedData);
+      // First validate the data with the schema
+      const validatedData = insertExamSchema.parse(req.body);
+      
+      // Then convert datetime strings to Date objects for storage
+      const examData = {
+        ...validatedData,
+        startTime: validatedData.startTime ? new Date(validatedData.startTime) : null,
+        endTime: validatedData.endTime ? new Date(validatedData.endTime) : null,
+      };
+      
+      const exam = await storage.createExam(examData);
       res.status(201).json(exam);
     } catch (error) {
+      console.error('Exam creation error:', error);
       handleRouteError(res, error);
     }
   });
@@ -985,13 +990,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/exams/:id", async (req: Request, res: Response) => {
     try {
       const examId = parseInt(req.params.id);
-      const { startTime, endTime, ...examData } = req.body;
-      const validatedData = insertExamSchema.partial().parse({
-        ...examData,
-        startTime: startTime ? new Date(startTime) : undefined,
-        endTime: endTime ? new Date(endTime) : undefined,
-      });
-      const exam = await storage.updateExam(examId, validatedData);
+      
+      // First validate the data with the schema
+      const validatedData = insertExamSchema.partial().parse(req.body);
+      
+      // Then convert datetime strings to Date objects for storage
+      const examData = {
+        ...validatedData,
+        startTime: validatedData.startTime ? new Date(validatedData.startTime) : undefined,
+        endTime: validatedData.endTime ? new Date(validatedData.endTime) : undefined,
+      };
+      
+      const exam = await storage.updateExam(examId, examData);
       
       if (!exam) {
         return res.status(404).json({ message: "Exam not found" });
