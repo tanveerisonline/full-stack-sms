@@ -9,10 +9,14 @@ function useAttendance() {
     loadAttendanceRecords();
   }, []);
 
-  const loadAttendanceRecords = async () => {
+  const loadAttendanceRecords = async (grade?: string, section?: string, date?: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/attendance');
+      let url = '/api/attendance';
+      if (grade && section && date) {
+        url += `?grade=${grade}&section=${section}&date=${date}`;
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const records = await response.json();
         setAttendanceRecords(records);
@@ -36,12 +40,13 @@ function useAttendance() {
           studentId: parseInt(attendanceData.studentId),
           date: attendanceData.date,
           status: attendanceData.status,
+          grade: attendanceData.grade,
+          section: attendanceData.section,
           remarks: attendanceData.remarks || attendanceData.notes
         }),
       });
       
       if (response.ok) {
-        await loadAttendanceRecords(); // Refresh data
         return await response.json();
       } else {
         throw new Error('Failed to mark attendance');
@@ -123,7 +128,8 @@ function useAttendance() {
     getAttendanceStats,
     getAttendanceByDateRange,
     getStudentAttendanceRate,
-    refreshAttendance: loadAttendanceRecords
+    refreshAttendance: loadAttendanceRecords,
+    loadAttendanceRecords
   };
 }
 export { useAttendance };

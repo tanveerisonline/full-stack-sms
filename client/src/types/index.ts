@@ -65,6 +65,8 @@ export interface AttendanceRecord {
   studentId: number;
   date: string;
   status: 'present' | 'absent' | 'late' | 'holiday';
+  grade?: string;
+  section?: string;
   remarks?: string;
   markedBy?: number;
   createdAt: string;

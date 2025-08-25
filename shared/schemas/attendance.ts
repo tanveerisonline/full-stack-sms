@@ -11,6 +11,8 @@ export const attendance = pgTable('attendance', {
   studentId: integer('student_id').references(() => students.id).notNull(),
   date: date('date').notNull(),
   status: text('status').notNull(),
+  grade: text('grade').default('Grade 10'),
+  section: text('section').default('A'),
   remarks: text('remarks'),
   markedBy: integer('marked_by').references(() => teachers.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),

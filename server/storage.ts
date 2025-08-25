@@ -324,6 +324,18 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(attendance).where(eq(attendance.studentId, studentId));
   }
 
+  async getAttendanceByGradeSectionDate(grade: string, section: string, date: string): Promise<Attendance[]> {
+    return await db.select().from(attendance)
+      .where(
+        and(
+          eq(attendance.grade, grade),
+          eq(attendance.section, section),
+          eq(attendance.date, date)
+        )
+      )
+      .orderBy(desc(attendance.createdAt));
+  }
+
   async createAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
     const [newAttendance] = await db.insert(attendance).values(attendanceData).returning();
     return newAttendance;

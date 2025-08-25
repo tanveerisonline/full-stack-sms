@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,11 +16,16 @@ import { CheckCircle, Calendar, Clock, Download, Printer } from 'lucide-react';
 export default function Attendance() {
   const { addToast } = useToast();
   const { students } = useStudents();
-  const { attendanceRecords, markAttendance, getAttendanceStats } = useAttendance();
+  const { attendanceRecords, markAttendance, getAttendanceStats, loadAttendanceRecords } = useAttendance();
   
   const [selectedGrade, setSelectedGrade] = useState('Grade 10');
   const [selectedSection, setSelectedSection] = useState('A');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Load attendance when grade, section, or date changes
+  useEffect(() => {
+    loadAttendanceRecords(selectedGrade, selectedSection, selectedDate);
+  }, [selectedGrade, selectedSection, selectedDate]);
 
   const filteredStudents = students.filter(student => 
     student.grade === selectedGrade && student.status === 'active'
@@ -35,8 +40,14 @@ export default function Attendance() {
   const handleMarkAttendance = async (attendanceData: any[]) => {
     try {
       for (const record of attendanceData) {
-        await markAttendance(record);
+        await markAttendance({
+          ...record,
+          grade: selectedGrade,
+          section: selectedSection
+        });
       }
+      // Refresh attendance data after submission
+      await loadAttendanceRecords(selectedGrade, selectedSection, selectedDate);
       addToast('Attendance marked successfully!', 'success');
     } catch (error) {
       addToast('Failed to mark attendance. Please try again.', 'error');

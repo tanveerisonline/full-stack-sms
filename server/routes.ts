@@ -749,7 +749,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Attendance routes
   app.get("/api/attendance", async (req: Request, res: Response) => {
     try {
-      const attendance = await storage.getAttendance();
+      const { grade, section, date } = req.query;
+      let attendance;
+      
+      if (grade && section && date) {
+        attendance = await storage.getAttendanceByGradeSectionDate(
+          grade as string, 
+          section as string, 
+          date as string
+        );
+      } else {
+        attendance = await storage.getAttendance();
+      }
+      
       res.json(attendance);
     } catch (error) {
       handleRouteError(res, error);
