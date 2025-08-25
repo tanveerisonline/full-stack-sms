@@ -18,6 +18,7 @@ import {
   Download
 } from 'lucide-react';
 import StaffForm from '@/components/features/staff/StaffForm';
+import TeacherDetailModal from '@/components/features/staff/TeacherDetailModal';
 import type { Teacher } from '@shared/schema';
 
 // Convert Google Storage private URLs to local serving URLs
@@ -37,6 +38,7 @@ const convertToLocalUrl = (url: string): string => {
 export default function HR() {
   const [showForm, setShowForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [viewingTeacher, setViewingTeacher] = useState<Teacher | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -147,8 +149,8 @@ export default function HR() {
   };
 
   const handleViewTeacher = (teacher: Teacher) => {
-    // TODO: Implement view teacher details modal or page
     console.log('View teacher:', teacher);
+    setViewingTeacher(teacher);
   };
 
   const handleCloseForm = () => {
@@ -469,6 +471,14 @@ export default function HR() {
           onSubmit={handleSubmitTeacher}
           teacher={editingTeacher}
           isLoading={addTeacherMutation.isPending || updateTeacherMutation.isPending}
+        />
+
+        {/* Teacher Detail Modal */}
+        <TeacherDetailModal
+          teacher={viewingTeacher}
+          isOpen={!!viewingTeacher}
+          onClose={() => setViewingTeacher(null)}
+          onEdit={handleEditTeacher}
         />
       </div>
     </div>
