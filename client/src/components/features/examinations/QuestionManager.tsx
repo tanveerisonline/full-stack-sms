@@ -68,7 +68,7 @@ export function QuestionManager({ examId }: QuestionManagerProps) {
         examId,
         questionType: 'multiple_choice',
         marks: 1,
-        orderIndex: (questions?.length || 0) + 1,
+        orderIndex: (questionsList.length || 0) + 1,
       });
       toast({
         title: "Question created",
@@ -156,7 +156,7 @@ export function QuestionManager({ examId }: QuestionManagerProps) {
   };
 
   const handleAddOption = (questionId: number) => {
-    const question = questions?.find((q: QuestionWithOptions) => q.id === questionId);
+    const question = questionsList.find((q: QuestionWithOptions) => q.id === questionId);
     if (!question) return;
 
     const newOption: NewOption = {
@@ -172,6 +172,9 @@ export function QuestionManager({ examId }: QuestionManagerProps) {
   if (isLoading) {
     return <div data-testid="loading-questions">Loading questions...</div>;
   }
+
+  // Ensure questions is always an array
+  const questionsList = Array.isArray(questions) ? questions : [];
 
   return (
     <div className="space-y-6" data-testid="question-manager">
@@ -284,7 +287,7 @@ export function QuestionManager({ examId }: QuestionManagerProps) {
       )}
 
       <div className="space-y-4">
-        {questions?.map((question: QuestionWithOptions, index: number) => (
+        {questionsList.map((question: QuestionWithOptions, index: number) => (
           <Card key={question.id} data-testid={`question-card-${question.id}`}>
             <CardHeader>
               <div className="flex justify-between items-start">
@@ -378,7 +381,7 @@ export function QuestionManager({ examId }: QuestionManagerProps) {
         ))}
       </div>
 
-      {questions?.length === 0 && (
+      {questionsList.length === 0 && (
         <Card data-testid="no-questions-message">
           <CardContent className="text-center py-8">
             <p className="text-gray-500">No questions added yet. Click "Add Question" to get started.</p>

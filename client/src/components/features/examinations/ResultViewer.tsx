@@ -34,7 +34,10 @@ export function ResultViewer({ examId }: ResultViewerProps) {
     enabled: !!selectedResult,
   });
 
-  const sortedResults = results?.sort((a: ExamResult, b: ExamResult) => {
+  // Ensure results is always an array
+  const resultsList = Array.isArray(results) ? results : [];
+
+  const sortedResults = resultsList.sort((a: ExamResult, b: ExamResult) => {
     switch (sortBy) {
       case 'percentage':
         return (parseFloat(b.percentage || '0') - parseFloat(a.percentage || '0'));
@@ -47,7 +50,7 @@ export function ResultViewer({ examId }: ResultViewerProps) {
       default:
         return 0;
     }
-  }) || [];
+  });
 
   const filteredResults = sortedResults.filter((result: ExamResult) => {
     const matchesSearch = searchTerm === '' || 
@@ -57,19 +60,19 @@ export function ResultViewer({ examId }: ResultViewerProps) {
   });
 
   // Calculate statistics
-  const totalResults = results?.length || 0;
-  const passedResults = results?.filter((r: ExamResult) => r.passed).length || 0;
+  const totalResults = resultsList.length;
+  const passedResults = resultsList.filter((r: ExamResult) => r.passed).length;
   const averageScore = totalResults > 0 ? 
-    results.reduce((sum: number, r: ExamResult) => sum + (parseFloat(r.totalScore || '0')), 0) / totalResults : 0;
+    resultsList.reduce((sum: number, r: ExamResult) => sum + (parseFloat(r.totalScore || '0')), 0) / totalResults : 0;
   const averagePercentage = totalResults > 0 ? 
-    results.reduce((sum: number, r: ExamResult) => sum + (parseFloat(r.percentage || '0')), 0) / totalResults : 0;
+    resultsList.reduce((sum: number, r: ExamResult) => sum + (parseFloat(r.percentage || '0')), 0) / totalResults : 0;
   const highestScore = totalResults > 0 ? 
-    Math.max(...results.map((r: ExamResult) => parseFloat(r.totalScore || '0'))) : 0;
+    Math.max(...resultsList.map((r: ExamResult) => parseFloat(r.totalScore || '0'))) : 0;
   const lowestScore = totalResults > 0 ? 
-    Math.min(...results.map((r: ExamResult) => parseFloat(r.totalScore || '0'))) : 0;
+    Math.min(...resultsList.map((r: ExamResult) => parseFloat(r.totalScore || '0'))) : 0;
 
   // Grade distribution
-  const gradeDistribution = results?.reduce((acc: Record<string, number>, result: ExamResult) => {
+  const gradeDistribution = resultsList.reduce((acc: Record<string, number>, result: ExamResult) => {
     const percentage = parseFloat(result.percentage || '0');
     let grade = 'F';
     if (percentage >= 90) grade = 'A';
@@ -79,7 +82,7 @@ export function ResultViewer({ examId }: ResultViewerProps) {
     
     acc[grade] = (acc[grade] || 0) + 1;
     return acc;
-  }, {}) || {};
+  }, {});
 
   if (isLoading) {
     return <div data-testid="loading-results">Loading results...</div>;

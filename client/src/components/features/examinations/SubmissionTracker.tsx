@@ -68,18 +68,21 @@ export function SubmissionTracker({ examId }: SubmissionTrackerProps) {
     }
   };
 
-  const filteredSubmissions = submissions?.filter((submission: ExamSubmission) => {
+  // Ensure submissions is always an array
+  const submissionsList = Array.isArray(submissions) ? submissions : [];
+
+  const filteredSubmissions = submissionsList.filter((submission: ExamSubmission) => {
     const matchesStatus = statusFilter === 'all' || submission.status === statusFilter;
     const matchesSearch = searchTerm === '' || 
       submission.studentId.toString().includes(searchTerm) ||
       submission.id.toString().includes(searchTerm);
     return matchesStatus && matchesSearch;
-  }) || [];
+  });
 
-  const statusCounts = submissions?.reduce((acc: Record<string, number>, submission: ExamSubmission) => {
+  const statusCounts = submissionsList.reduce((acc: Record<string, number>, submission: ExamSubmission) => {
     acc[submission.status] = (acc[submission.status] || 0) + 1;
     return acc;
-  }, {}) || {};
+  }, {});
 
   if (isLoading) {
     return <div data-testid="loading-submissions">Loading submissions...</div>;
@@ -99,7 +102,7 @@ export function SubmissionTracker({ examId }: SubmissionTrackerProps) {
               <div>
                 <p className="text-sm text-gray-600">Total Submissions</p>
                 <p className="text-2xl font-bold" data-testid="total-submissions-count">
-                  {submissions?.length || 0}
+                  {submissionsList.length}
                 </p>
               </div>
               <User className="w-8 h-8 text-gray-400" />
