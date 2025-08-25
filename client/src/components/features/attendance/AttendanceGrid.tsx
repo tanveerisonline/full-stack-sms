@@ -13,8 +13,8 @@ interface AttendanceGridProps {
 }
 
 interface AttendanceEntry {
-  studentId: string;
-  status: 'present' | 'absent' | 'late';
+  studentId: number;
+  status: 'present' | 'absent' | 'late' | 'holiday';
   notes: string;
 }
 
@@ -27,14 +27,14 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
       const existingRecord = existingAttendance.find(record => record.studentId === student.id);
       return {
         studentId: student.id,
-        status: existingRecord?.status || 'present' as 'present' | 'absent' | 'late',
-        notes: existingRecord?.notes || ''
+        status: existingRecord?.status || 'present' as 'present' | 'absent' | 'late' | 'holiday',
+        notes: existingRecord?.remarks || ''
       };
     });
     setAttendanceData(initialData);
   }, [students, existingAttendance]);
 
-  const updateAttendance = (studentId: string, field: 'status' | 'notes', value: string) => {
+  const updateAttendance = (studentId: number, field: 'status' | 'notes', value: string) => {
     setAttendanceData(prev => 
       prev.map(entry => 
         entry.studentId === studentId 
@@ -49,14 +49,29 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
       studentId: entry.studentId,
       date,
       status: entry.status,
-      notes: entry.notes,
-      markedBy: 'current-user' // This would be the logged-in user ID
+      remarks: entry.notes,
+      markedBy: 1 // Temporary - should be actual logged in user ID
     }));
     onSave(attendanceRecords);
   };
 
-  const getStatusCount = (status: 'present' | 'absent' | 'late') => {
+  const getStatusCount = (status: 'present' | 'absent' | 'late' | 'holiday') => {
     return attendanceData.filter(entry => entry.status === status).length;
+  };
+
+  const handleIndividualSubmit = async (studentId: number) => {
+    const studentAttendance = attendanceData.find(entry => entry.studentId === studentId);
+    if (!studentAttendance) return;
+
+    const attendanceRecord = {
+      studentId: studentAttendance.studentId,
+      date,
+      status: studentAttendance.status,
+      remarks: studentAttendance.notes,
+      markedBy: 1 // Temporary - should be actual logged in user ID
+    };
+    
+    await onSave([attendanceRecord]);
   };
 
   if (students.length === 0) {
@@ -70,7 +85,7 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
   return (
     <div className="space-y-6" data-testid="attendance-grid">
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-green-50 p-4 rounded-lg text-center">
           <div className="text-2xl font-bold text-green-600" data-testid="count-present">
             {getStatusCount('present')}
@@ -89,6 +104,12 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
           </div>
           <div className="text-sm text-yellow-800">Late</div>
         </div>
+        <div className="bg-blue-50 p-4 rounded-lg text-center">
+          <div className="text-2xl font-bold text-blue-600" data-testid="count-holiday">
+            {getStatusCount('holiday')}
+          </div>
+          <div className="text-sm text-blue-800">Holiday</div>
+        </div>
       </div>
 
       {/* Attendance Grid */}
@@ -101,7 +122,9 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
               <th className="text-center px-6 py-4 font-medium text-slate-600">Present</th>
               <th className="text-center px-6 py-4 font-medium text-slate-600">Late</th>
               <th className="text-center px-6 py-4 font-medium text-slate-600">Absent</th>
+              <th className="text-center px-6 py-4 font-medium text-slate-600">Holiday</th>
               <th className="text-left px-6 py-4 font-medium text-slate-600">Notes</th>
+              <th className="text-center px-6 py-4 font-medium text-slate-600">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -159,6 +182,17 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
                       data-testid={`radio-absent-${student.id}`}
                     />
                   </td>
+                  <td className="px-6 py-4 text-center">
+                    <input
+                      type="radio"
+                      name={`attendance_${student.id}`}
+                      value="holiday"
+                      checked={attendance?.status === 'holiday'}
+                      onChange={() => updateAttendance(student.id, 'status', 'holiday')}
+                      className="text-blue-600 focus:ring-blue-500"
+                      data-testid={`radio-holiday-${student.id}`}
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <Textarea
                       placeholder="Add note..."
@@ -168,6 +202,16 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
                       rows={1}
                       data-testid={`notes-${student.id}`}
                     />
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <Button 
+                      size="sm"
+                      onClick={() => handleIndividualSubmit(student.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-xs"
+                      data-testid={`button-submit-${student.id}`}
+                    >
+                      Submit
+                    </Button>
                   </td>
                 </tr>
               );

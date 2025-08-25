@@ -14,7 +14,8 @@ export const STUDENT_STATUS = [
 export const ATTENDANCE_STATUS = [
   { value: 'present', label: 'Present', color: 'text-green-600' },
   { value: 'absent', label: 'Absent', color: 'text-red-600' },
-  { value: 'late', label: 'Late', color: 'text-yellow-600' }
+  { value: 'late', label: 'Late', color: 'text-yellow-600' },
+  { value: 'holiday', label: 'Holiday', color: 'text-blue-600' }
 ];
 
 export const TRANSACTION_TYPES = [

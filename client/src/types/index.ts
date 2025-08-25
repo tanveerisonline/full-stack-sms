@@ -61,12 +61,12 @@ export interface Course {
 }
 
 export interface AttendanceRecord {
-  id: string;
-  studentId: string;
-  classId: string;
+  id: number;
+  studentId: number;
   date: string;
-  status: 'present' | 'absent' | 'late';
-  notes?: string;
+  status: 'present' | 'absent' | 'late' | 'holiday';
+  remarks?: string;
+  markedBy?: number;
   createdAt: string;
   updatedAt: string;
 }

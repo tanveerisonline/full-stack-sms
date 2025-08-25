@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { dataService } from '@/services/dataService';
 import { AttendanceRecord } from '@/types';
 
 function useAttendance() {
@@ -10,27 +9,43 @@ function useAttendance() {
     loadAttendanceRecords();
   }, []);
 
-  const loadAttendanceRecords = () => {
+  const loadAttendanceRecords = async () => {
+    setIsLoading(true);
     try {
-      const records = dataService.getAttendanceRecords();
-      setAttendanceRecords(records);
+      const response = await fetch('/api/attendance');
+      if (response.ok) {
+        const records = await response.json();
+        setAttendanceRecords(records);
+      }
     } catch (error) {
       console.error('Error loading attendance records:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const markAttendance = async (attendanceData: Omit<AttendanceRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const markAttendance = async (attendanceData: any) => {
     setIsLoading(true);
     try {
-      const newRecord = dataService.addAttendanceRecord(attendanceData);
-      setAttendanceRecords(prev => {
-        // Remove existing record for same student and date, then add new one
-        const filtered = prev.filter(record => 
-          !(record.studentId === attendanceData.studentId && record.date === attendanceData.date)
-        );
-        return [...filtered, newRecord];
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: parseInt(attendanceData.studentId),
+          date: attendanceData.date,
+          status: attendanceData.status,
+          remarks: attendanceData.remarks || attendanceData.notes
+        }),
       });
-      return newRecord;
+      
+      if (response.ok) {
+        await loadAttendanceRecords(); // Refresh data
+        return await response.json();
+      } else {
+        throw new Error('Failed to mark attendance');
+      }
     } catch (error) {
       console.error('Error marking attendance:', error);
       throw error;
@@ -43,7 +58,7 @@ function useAttendance() {
     return attendanceRecords.filter(record => record.date === date);
   };
 
-  const getAttendanceByStudent = (studentId: string) => {
+  const getAttendanceByStudent = (studentId: number) => {
     return attendanceRecords.filter(record => record.studentId === studentId);
   };
 
@@ -58,6 +73,7 @@ function useAttendance() {
     const presentCount = records.filter(record => record.status === 'present').length;
     const absentCount = records.filter(record => record.status === 'absent').length;
     const lateCount = records.filter(record => record.status === 'late').length;
+    const holidayCount = records.filter(record => record.status === 'holiday').length;
     
     const attendanceRate = totalStudents > 0 ? (presentCount / totalStudents) * 100 : 0;
 
@@ -66,6 +82,7 @@ function useAttendance() {
       presentCount,
       absentCount,
       lateCount,
+      holidayCount,
       attendanceRate
     };
   };
@@ -79,7 +96,7 @@ function useAttendance() {
     });
   };
 
-  const getStudentAttendanceRate = (studentId: string, startDate?: string, endDate?: string) => {
+  const getStudentAttendanceRate = (studentId: number, startDate?: string, endDate?: string) => {
     let records = attendanceRecords.filter(record => record.studentId === studentId);
     
     if (startDate && endDate) {
@@ -109,4 +126,5 @@ function useAttendance() {
     refreshAttendance: loadAttendanceRecords
   };
 }
-export default useAttendance
+export { useAttendance };
+export default useAttendance;

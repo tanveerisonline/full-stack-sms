@@ -57,8 +57,7 @@ export default function Attendance() {
           'Grade': student.grade,
           'Date': selectedDate,
           'Status': attendance ? attendance.status : 'Not marked',
-          'Arrival Time': attendance?.arrivalTime || 'N/A',
-          'Notes': attendance?.notes || 'N/A'
+          'Notes': attendance?.remarks || 'N/A'
         };
       });
       
@@ -111,7 +110,6 @@ export default function Attendance() {
                   <th>Roll Number</th>
                   <th>Student Name</th>
                   <th>Status</th>
-                  <th>Arrival Time</th>
                   <th>Notes</th>
                 </tr>
               </thead>
@@ -130,8 +128,7 @@ export default function Attendance() {
                       <td>${student.rollNumber}</td>
                       <td>${student.firstName} ${student.lastName}</td>
                       <td class="${statusClass}">${status}</td>
-                      <td>${attendance?.arrivalTime || 'N/A'}</td>
-                      <td>${attendance?.notes || 'N/A'}</td>
+                      <td>${attendance?.remarks || 'N/A'}</td>
                     </tr>
                   `;
                 }).join('')}
