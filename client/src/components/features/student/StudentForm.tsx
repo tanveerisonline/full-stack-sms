@@ -71,7 +71,7 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
     try {
       const response = await apiRequest('/api/photos/upload', {
         method: 'POST',
-      });
+      }) as { uploadURL: string };
       return {
         method: 'PUT' as const,
         url: response.uploadURL,

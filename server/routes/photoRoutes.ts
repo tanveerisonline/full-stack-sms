@@ -113,7 +113,7 @@ router.put("/student/:studentId/avatar", authenticateToken, async (req: Authenti
   try {
     // Check if user has permission to update this student (admin or self)
     const userRole = req.user?.role;
-    if (!['admin', 'super_admin'].includes(userRole)) {
+    if (!userRole || !['admin', 'super_admin'].includes(userRole)) {
       // Additional check can be added here for student's own photo update
       return res.status(403).json({ error: "Insufficient permissions" });
     }
@@ -122,7 +122,7 @@ router.put("/student/:studentId/avatar", authenticateToken, async (req: Authenti
     const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
       req.body.photoURL,
       {
-        owner: userId?.toString() || "",
+        owner: userId?.toString() || "anonymous",
         visibility: "private",
       },
     );
@@ -159,7 +159,7 @@ router.put("/teacher/:teacherId/avatar", authenticateToken, async (req: Authenti
   try {
     // Check if user has permission to update this teacher (admin or self)
     const userRole = req.user?.role;
-    if (!['admin', 'super_admin', 'teacher'].includes(userRole)) {
+    if (!userRole || !['admin', 'super_admin', 'teacher'].includes(userRole)) {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
@@ -167,7 +167,7 @@ router.put("/teacher/:teacherId/avatar", authenticateToken, async (req: Authenti
     const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
       req.body.photoURL,
       {
-        owner: userId?.toString() || "",
+        owner: userId?.toString() || "anonymous",
         visibility: "private",
       },
     );
