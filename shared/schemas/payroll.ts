@@ -33,14 +33,16 @@ export const payrollRelations = relations(payroll, ({ one }) => ({
 
 // Zod schemas for validation
 export const insertPayrollSchema = createInsertSchema(payroll, {
-  basicSalary: z.coerce.number().min(0, "Basic salary must be positive"),
-  allowances: z.coerce.number().min(0, "Allowances must be positive"),
-  deductions: z.coerce.number().min(0, "Deductions must be positive"),
-  overtime: z.coerce.number().min(0, "Overtime must be positive"),
-  bonus: z.coerce.number().min(0, "Bonus must be positive"),
+  basicSalary: z.coerce.string().min(1, "Basic salary is required"),
+  allowances: z.coerce.string().optional().default("0"),
+  deductions: z.coerce.string().optional().default("0"),
+  overtime: z.coerce.string().optional().default("0"),
+  bonus: z.coerce.string().optional().default("0"),
+  grossSalary: z.coerce.string().min(1, "Gross salary is required"),
+  netSalary: z.coerce.string().min(1, "Net salary is required"),
   month: z.string().min(1, "Month is required"),
   year: z.string().min(4, "Year must be 4 digits"),
-});
+}).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const selectPayrollSchema = createInsertSchema(payroll);
 

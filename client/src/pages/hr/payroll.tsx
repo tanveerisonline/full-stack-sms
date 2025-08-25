@@ -106,7 +106,7 @@ export default function PayrollManagement() {
 
   // Create payroll mutation
   const createPayrollMutation = useMutation({
-    mutationFn: async (payrollData: PayrollFormData) => {
+    mutationFn: async (payrollData: any) => {
       return apiRequest('/api/payroll', {
         method: 'POST',
         body: payrollData,
@@ -157,7 +157,31 @@ export default function PayrollManagement() {
   });
 
   const handleSubmit = (data: PayrollFormData) => {
-    createPayrollMutation.mutate(data);
+    // Calculate gross and net salary
+    const basicSal = Number(data.basicSalary) || 0;
+    const allowances = Number(data.allowances) || 0;
+    const deductions = Number(data.deductions) || 0;
+    const overtime = Number(data.overtime) || 0;
+    const bonus = Number(data.bonus) || 0;
+    
+    const grossSalary = basicSal + allowances + overtime + bonus;
+    const netSalary = grossSalary - deductions;
+
+    // Ensure proper data serialization with string values as expected by schema
+    const payrollData = {
+      teacherId: Number(data.teacherId),
+      month: data.month,
+      year: data.year,
+      basicSalary: basicSal.toString(),
+      allowances: allowances.toString(),
+      deductions: deductions.toString(),
+      overtime: overtime.toString(),
+      bonus: bonus.toString(),
+      grossSalary: grossSalary.toString(),
+      netSalary: netSalary.toString(),
+      notes: data.notes || ''
+    };
+    createPayrollMutation.mutate(payrollData);
   };
 
   const handleViewDetails = (record: PayrollRecord) => {

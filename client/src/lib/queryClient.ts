@@ -25,9 +25,16 @@ export async function apiRequest(
     }
   }
 
+  // Auto-stringify body if it's an object and Content-Type is JSON
+  let body = options.body;
+  if (body && typeof body === 'object' && headers['Content-Type'] === 'application/json') {
+    body = JSON.stringify(body);
+  }
+
   const res = await fetch(url, {
     ...options,
     headers,
+    body: body as BodyInit,
     credentials: "include",
   });
 
