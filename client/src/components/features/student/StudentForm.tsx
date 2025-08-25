@@ -71,10 +71,11 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
     try {
       const response = await apiRequest('/api/photos/upload', {
         method: 'POST',
-      }) as { uploadURL: string };
+      });
+      const data = await response.json();
       return {
         method: 'PUT' as const,
-        url: response.uploadURL,
+        url: data.uploadURL,
       };
     } catch (error) {
       toast({

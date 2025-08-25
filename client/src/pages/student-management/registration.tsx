@@ -1,25 +1,50 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { StudentTable, StudentForm, StudentDetailModal } from '@/components/features/student';
-import { useStudents } from '@/hooks/features/student';
-import { useToast } from '@/components/Common/Toast';
-import { Student } from '@/types';
+import { StudentForm } from '@/components/features/student';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { Plus } from 'lucide-react';
 
+interface Student {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  grade: string;
+  dateOfBirth: string;
+  address: string;
+  parentName: string;
+  parentContact: string;
+  avatar?: string;
+}
+
 export default function StudentRegistration() {
-  const { addToast } = useToast();
-  const { students, addStudent, updateStudent, deleteStudent, isLoading } = useStudents();
+  const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAddStudent = async (studentData: any) => {
+    setIsLoading(true);
     try {
-      await addStudent(studentData);
+      const response = await apiRequest('/api/students', {
+        method: 'POST',
+        body: studentData,
+      });
       setShowForm(false);
-      addToast('Student added successfully!', 'success');
-    } catch (error) {
-      addToast('Failed to add student. Please try again.', 'error');
+      toast({
+        title: "Student Added",
+        description: "New student has been registered successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Failed to register student. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -31,27 +56,27 @@ export default function StudentRegistration() {
   const handleUpdateStudent = async (studentData: any) => {
     if (!editingStudent) return;
     
+    setIsLoading(true);
     try {
-      await updateStudent(editingStudent.id, studentData);
+      await apiRequest(`/api/students/${editingStudent.id}`, {
+        method: 'PUT',
+        body: studentData,
+      });
       setShowForm(false);
       setEditingStudent(null);
-      addToast('Student updated successfully!', 'success');
-    } catch (error) {
-      addToast('Failed to update student. Please try again.', 'error');
+      toast({
+        title: "Student Updated",
+        description: "Student information has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update student. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleDeleteStudent = async (studentId: string) => {
-    try {
-      await deleteStudent(studentId);
-      addToast('Student deleted successfully!', 'success');
-    } catch (error) {
-      addToast('Failed to delete student. Please try again.', 'error');
-    }
-  };
-
-  const handleViewStudent = (student: Student) => {
-    setViewingStudent(student);
   };
 
   const handleCloseForm = () => {
@@ -81,14 +106,6 @@ export default function StudentRegistration() {
         </Button>
       </div>
 
-      {/* Students Table */}
-      <StudentTable
-        students={students}
-        onEdit={handleEditStudent}
-        onDelete={handleDeleteStudent}
-        onView={handleViewStudent}
-      />
-
       {/* Student Form Modal */}
       <StudentForm
         isOpen={showForm}
@@ -96,14 +113,6 @@ export default function StudentRegistration() {
         onSubmit={editingStudent ? handleUpdateStudent : handleAddStudent}
         student={editingStudent}
         isLoading={isLoading}
-      />
-
-      {/* Student Detail Modal */}
-      <StudentDetailModal
-        student={viewingStudent}
-        isOpen={!!viewingStudent}
-        onClose={() => setViewingStudent(null)}
-        onEdit={handleEditStudent}
       />
     </div>
   );
