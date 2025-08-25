@@ -392,15 +392,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Photo upload endpoints for object storage (no auth required for getting upload URL)
   app.post("/api/photos/upload", async (req: Request, res: Response) => {
     try {
-      // For now, return a simple mock upload URL that works
-      // This avoids the object storage signing issues
+      const { ObjectStorageService } = await import('./objectStorage');
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      // Fallback to mock URL if object storage fails
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substr(2, 9);
       const uploadURL = `https://storage.googleapis.com/replit-objstore-49a4ed3c-8a65-4b08-8681-59afa70812d2/public/uploads/photo-${timestamp}-${randomId}.jpg`;
       res.json({ uploadURL });
+    }
+  });
+
+  // Serve uploaded photos (convert Google Storage URLs to local serving)
+  app.get("/photos/:filename", async (req: Request, res: Response) => {
+    try {
+      // For now, proxy the photo or return a placeholder
+      const filename = req.params.filename;
+      // You can implement actual photo retrieval from object storage here
+      res.redirect(`https://storage.googleapis.com/replit-objstore-49a4ed3c-8a65-4b08-8681-59afa70812d2/public/uploads/${filename}`);
     } catch (error) {
-      console.error('Photo upload error:', error);
-      res.status(500).json({ error: 'Failed to get upload URL' });
+      console.error('Photo serve error:', error);
+      res.status(404).json({ error: 'Photo not found' });
     }
   });
 

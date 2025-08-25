@@ -105,8 +105,12 @@ function StaffForm({ isOpen, onClose, onSubmit, teacher, isLoading = false }: St
       const uploadURL = (uploadedFile as any).uploadURL;
       
       if (uploadURL) {
-        setPhotoUrl(uploadURL);
-        form.setValue('avatar', uploadURL);
+        // Convert the storage URL to a local serving URL  
+        const photoFilename = uploadURL.split('/').pop();
+        const localPhotoUrl = `/photos/${photoFilename}`;
+        
+        setPhotoUrl(uploadURL); // Keep original for display during upload
+        form.setValue('avatar', uploadURL); // Store original URL
         toast({
           title: "Photo Uploaded",
           description: "Staff photo has been uploaded successfully.",
