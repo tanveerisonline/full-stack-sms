@@ -90,23 +90,6 @@ export const BOOK_CATEGORIES = [
 
 export const NAVIGATION_ITEMS = [
   {
-    id: 'dashboard',
-    label: 'Executive Dashboard',
-    icon: 'fas fa-chart-pie',
-    path: '/dashboard'
-  },
-  {
-    id: 'student-management',
-    label: 'Student Management',
-    icon: 'fas fa-user-graduate',
-    hasSubmenu: true,
-    submenu: [
-      { id: 'student-registration', label: 'Registration & Enrollment', icon: 'fas fa-user-plus', path: '/students' },
-      { id: 'student-profiles', label: 'Student Profiles', icon: 'fas fa-address-card', path: '/students/profiles' },
-      { id: 'id-cards', label: 'ID Card System', icon: 'fas fa-id-card', path: '/students/id-cards' }
-    ]
-  },
-  {
     id: 'academic-management',
     label: 'Academic Management',
     icon: 'fas fa-book',
@@ -124,16 +107,28 @@ export const NAVIGATION_ITEMS = [
     path: '/attendance'
   },
   {
-    id: 'grading',
-    label: 'Grading & Assessment',
-    icon: 'fas fa-trophy',
-    path: '/grading'
-  },
-  {
     id: 'communication',
     label: 'Communication Hub',
     icon: 'fas fa-comments',
     path: '/communication'
+  },
+  {
+    id: 'examinations',
+    label: 'Examination System',
+    icon: 'fas fa-file-alt',
+    path: '/examinations'
+  },
+  {
+    id: 'dashboard',
+    label: 'Executive Dashboard',
+    icon: 'fas fa-chart-pie',
+    path: '/dashboard'
+  },
+  {
+    id: 'facilities',
+    label: 'Facilities Management',
+    icon: 'fas fa-building',
+    path: '/facilities'
   },
   {
     id: 'financial',
@@ -142,10 +137,10 @@ export const NAVIGATION_ITEMS = [
     path: '/financial'
   },
   {
-    id: 'library',
-    label: 'Library System',
-    icon: 'fas fa-book-open',
-    path: '/library'
+    id: 'grading',
+    label: 'Grading & Assessment',
+    icon: 'fas fa-trophy',
+    path: '/grading'
   },
   {
     id: 'hr',
@@ -159,21 +154,26 @@ export const NAVIGATION_ITEMS = [
     ]
   },
   {
-    id: 'facilities',
-    label: 'Facilities Management',
-    icon: 'fas fa-building',
-    path: '/facilities'
+    id: 'library',
+    label: 'Library System',
+    icon: 'fas fa-book-open',
+    path: '/library'
+  },
+  {
+    id: 'student-management',
+    label: 'Student Management',
+    icon: 'fas fa-user-graduate',
+    hasSubmenu: true,
+    submenu: [
+      { id: 'student-registration', label: 'Registration & Enrollment', icon: 'fas fa-user-plus', path: '/students' },
+      { id: 'student-profiles', label: 'Student Profiles', icon: 'fas fa-address-card', path: '/students/profiles' },
+      { id: 'id-cards', label: 'ID Card System', icon: 'fas fa-id-card', path: '/students/id-cards' }
+    ]
   },
   {
     id: 'transportation',
     label: 'Transportation',
     icon: 'fas fa-bus',
     path: '/transportation'
-  },
-  {
-    id: 'examinations',
-    label: 'Examination System',
-    icon: 'fas fa-file-alt',
-    path: '/examinations'
   }
 ];
