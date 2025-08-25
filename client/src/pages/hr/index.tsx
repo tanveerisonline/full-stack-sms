@@ -18,7 +18,7 @@ import {
   Download
 } from 'lucide-react';
 import StaffForm from '@/components/features/staff/StaffForm';
-import type { Teacher } from '@shared/schema';
+import { Teacher } from '@/types';
 
 export default function HR() {
   const [showForm, setShowForm] = useState(false);

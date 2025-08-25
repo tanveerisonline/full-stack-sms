@@ -149,9 +149,14 @@ export const NAVIGATION_ITEMS = [
   },
   {
     id: 'hr',
-    label: 'Human Resources',
+    label: 'Teacher Management',
     icon: 'fas fa-users',
-    path: '/hr'
+    hasSubmenu: true,
+    submenu: [
+      { id: 'teacher-registration', label: 'Teacher Registration', icon: 'fas fa-user-plus', path: '/hr' },
+      { id: 'teacher-profiles', label: 'Teacher Profiles', icon: 'fas fa-address-card', path: '/hr/profiles' },
+      { id: 'payroll', label: 'Payroll Management', icon: 'fas fa-dollar-sign', path: '/hr/payroll' }
+    ]
   },
   {
     id: 'facilities',
