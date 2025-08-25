@@ -187,11 +187,5 @@ export const NAVIGATION_ITEMS = [
     label: 'Reporting & Analytics',
     icon: 'fas fa-chart-bar',
     path: '/reports'
-  },
-  {
-    id: 'admin',
-    label: 'System Administration',
-    icon: 'fas fa-cogs',
-    path: '/admin'
   }
 ];
