@@ -9,6 +9,7 @@ export * from './library';
 export * from './communication';
 export * from './admin';
 export * from './payroll';
+export * from './examination';
 
 // Import for cross-schema relations
 import { relations } from 'drizzle-orm';
@@ -20,6 +21,7 @@ import { grades, assignments, classes, timetable } from './academic';
 import { attendance } from './attendance';
 import { transactions } from './financial';
 import { books, bookIssues } from './library';
+import { exams, questions, examSubmissions, examResults } from './examination';
 
 // Cross-schema relations that couldn't be defined in individual files
 
@@ -60,6 +62,10 @@ export const allTables = {
   books,
   bookIssues,
   announcements,
+  exams,
+  questions,
+  examSubmissions,
+  examResults,
 } as const;
 
 // Schema validation helpers
@@ -89,4 +95,12 @@ export const schemas = {
   insertAnnouncement: () => import('./communication').then(m => m.insertAnnouncementSchema),
   insertAuditLog: () => import('./admin').then(m => m.insertAuditLogSchema),
   insertSystemSetting: () => import('./admin').then(m => m.insertSystemSettingSchema),
+  
+  // Examination schemas
+  insertExam: () => import('./examination').then(m => m.insertExamSchema),
+  insertQuestion: () => import('./examination').then(m => m.insertQuestionSchema),
+  insertQuestionOption: () => import('./examination').then(m => m.insertQuestionOptionSchema),
+  insertExamSubmission: () => import('./examination').then(m => m.insertExamSubmissionSchema),
+  insertSubmissionAnswer: () => import('./examination').then(m => m.insertSubmissionAnswerSchema),
+  insertExamResult: () => import('./examination').then(m => m.insertExamResultSchema),
 } as const;

@@ -1,13 +1,17 @@
 import { 
   users, students, teachers, classes, assignments, grades, attendance, 
   books, bookIssues, transactions, announcements, timetable, payroll,
+  exams, questions, questionOptions, examSubmissions, submissionAnswers, examResults,
   type User, type Student, type Teacher, type Class, type Assignment, 
   type Grade, type Attendance, type Book, type BookIssue, type Transaction, 
-  type Announcement, type Timetable, type Payroll,
+  type Announcement, type Timetable, type Payroll, type Exam, type Question,
+  type QuestionOption, type ExamSubmission, type SubmissionAnswer, type ExamResult,
   type InsertUser, type InsertStudent, type InsertTeacher, type InsertClass,
   type InsertAssignment, type InsertGrade, type InsertAttendance, 
   type InsertBook, type InsertBookIssue, type InsertTransaction,
-  type InsertAnnouncement, type InsertTimetable, type InsertPayroll
+  type InsertAnnouncement, type InsertTimetable, type InsertPayroll,
+  type InsertExam, type InsertQuestion, type InsertQuestionOption,
+  type InsertExamSubmission, type InsertSubmissionAnswer, type InsertExamResult
 } from '@shared/schema';
 import { db } from './db';
 import { eq, desc, and, like, or } from 'drizzle-orm';
@@ -104,6 +108,60 @@ export interface IStorage {
   createPayroll(payroll: InsertPayroll): Promise<Payroll>;
   updatePayroll(id: number, payroll: Partial<InsertPayroll>): Promise<Payroll>;
   deletePayroll(id: number): Promise<void>;
+  
+  // Examinations
+  // Exams
+  getExams(): Promise<Exam[]>;
+  getExam(id: number): Promise<Exam | undefined>;
+  getExamsByTeacher(teacherId: number): Promise<Exam[]>;
+  getExamsByClass(classId: string): Promise<Exam[]>;
+  createExam(exam: InsertExam): Promise<Exam>;
+  updateExam(id: number, exam: Partial<InsertExam>): Promise<Exam>;
+  deleteExam(id: number): Promise<void>;
+  
+  // Questions
+  getQuestions(): Promise<Question[]>;
+  getQuestion(id: number): Promise<Question | undefined>;
+  getQuestionsByExam(examId: number): Promise<Question[]>;
+  createQuestion(question: InsertQuestion): Promise<Question>;
+  updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question>;
+  deleteQuestion(id: number): Promise<void>;
+  
+  // Question Options
+  getQuestionOptions(): Promise<QuestionOption[]>;
+  getQuestionOption(id: number): Promise<QuestionOption | undefined>;
+  getQuestionOptionsByQuestion(questionId: number): Promise<QuestionOption[]>;
+  createQuestionOption(option: InsertQuestionOption): Promise<QuestionOption>;
+  updateQuestionOption(id: number, option: Partial<InsertQuestionOption>): Promise<QuestionOption>;
+  deleteQuestionOption(id: number): Promise<void>;
+  
+  // Exam Submissions
+  getExamSubmissions(): Promise<ExamSubmission[]>;
+  getExamSubmission(id: number): Promise<ExamSubmission | undefined>;
+  getExamSubmissionsByStudent(studentId: number): Promise<ExamSubmission[]>;
+  getExamSubmissionsByExam(examId: number): Promise<ExamSubmission[]>;
+  getExamSubmissionByStudentAndExam(studentId: number, examId: number): Promise<ExamSubmission | undefined>;
+  createExamSubmission(submission: InsertExamSubmission): Promise<ExamSubmission>;
+  updateExamSubmission(id: number, submission: Partial<InsertExamSubmission>): Promise<ExamSubmission>;
+  deleteExamSubmission(id: number): Promise<void>;
+  
+  // Submission Answers
+  getSubmissionAnswers(): Promise<SubmissionAnswer[]>;
+  getSubmissionAnswer(id: number): Promise<SubmissionAnswer | undefined>;
+  getSubmissionAnswersBySubmission(submissionId: number): Promise<SubmissionAnswer[]>;
+  createSubmissionAnswer(answer: InsertSubmissionAnswer): Promise<SubmissionAnswer>;
+  updateSubmissionAnswer(id: number, answer: Partial<InsertSubmissionAnswer>): Promise<SubmissionAnswer>;
+  deleteSubmissionAnswer(id: number): Promise<void>;
+  
+  // Exam Results
+  getExamResults(): Promise<ExamResult[]>;
+  getExamResult(id: number): Promise<ExamResult | undefined>;
+  getExamResultsByStudent(studentId: number): Promise<ExamResult[]>;
+  getExamResultsByExam(examId: number): Promise<ExamResult[]>;
+  getExamResultByStudentAndExam(studentId: number, examId: number): Promise<ExamResult | undefined>;
+  createExamResult(result: InsertExamResult): Promise<ExamResult>;
+  updateExamResult(id: number, result: Partial<InsertExamResult>): Promise<ExamResult>;
+  deleteExamResult(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -497,6 +555,221 @@ export class DatabaseStorage implements IStorage {
 
   async deletePayroll(id: number): Promise<void> {
     await db.delete(payroll).where(eq(payroll.id, id));
+  }
+
+  // Examinations
+  // Exams
+  async getExams(): Promise<Exam[]> {
+    return await db.select().from(exams).orderBy(desc(exams.createdAt));
+  }
+
+  async getExam(id: number): Promise<Exam | undefined> {
+    const [exam] = await db.select().from(exams).where(eq(exams.id, id));
+    return exam || undefined;
+  }
+
+  async getExamsByTeacher(teacherId: number): Promise<Exam[]> {
+    return await db.select().from(exams).where(eq(exams.teacherId, teacherId));
+  }
+
+  async getExamsByClass(classId: string): Promise<Exam[]> {
+    return await db.select().from(exams).where(eq(exams.class, classId));
+  }
+
+  async createExam(exam: InsertExam): Promise<Exam> {
+    const [newExam] = await db.insert(exams).values(exam).returning();
+    return newExam;
+  }
+
+  async updateExam(id: number, exam: Partial<InsertExam>): Promise<Exam> {
+    const [updatedExam] = await db.update(exams)
+      .set({ ...exam, updatedAt: new Date() })
+      .where(eq(exams.id, id))
+      .returning();
+    return updatedExam;
+  }
+
+  async deleteExam(id: number): Promise<void> {
+    await db.delete(exams).where(eq(exams.id, id));
+  }
+
+  // Questions
+  async getQuestions(): Promise<Question[]> {
+    return await db.select().from(questions).orderBy(questions.orderIndex);
+  }
+
+  async getQuestion(id: number): Promise<Question | undefined> {
+    const [question] = await db.select().from(questions).where(eq(questions.id, id));
+    return question || undefined;
+  }
+
+  async getQuestionsByExam(examId: number): Promise<Question[]> {
+    return await db.select().from(questions)
+      .where(eq(questions.examId, examId))
+      .orderBy(questions.orderIndex);
+  }
+
+  async createQuestion(question: InsertQuestion): Promise<Question> {
+    const [newQuestion] = await db.insert(questions).values(question).returning();
+    return newQuestion;
+  }
+
+  async updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question> {
+    const [updatedQuestion] = await db.update(questions)
+      .set({ ...question, updatedAt: new Date() })
+      .where(eq(questions.id, id))
+      .returning();
+    return updatedQuestion;
+  }
+
+  async deleteQuestion(id: number): Promise<void> {
+    await db.delete(questions).where(eq(questions.id, id));
+  }
+
+  // Question Options
+  async getQuestionOptions(): Promise<QuestionOption[]> {
+    return await db.select().from(questionOptions).orderBy(questionOptions.orderIndex);
+  }
+
+  async getQuestionOption(id: number): Promise<QuestionOption | undefined> {
+    const [option] = await db.select().from(questionOptions).where(eq(questionOptions.id, id));
+    return option || undefined;
+  }
+
+  async getQuestionOptionsByQuestion(questionId: number): Promise<QuestionOption[]> {
+    return await db.select().from(questionOptions)
+      .where(eq(questionOptions.questionId, questionId))
+      .orderBy(questionOptions.orderIndex);
+  }
+
+  async createQuestionOption(option: InsertQuestionOption): Promise<QuestionOption> {
+    const [newOption] = await db.insert(questionOptions).values(option).returning();
+    return newOption;
+  }
+
+  async updateQuestionOption(id: number, option: Partial<InsertQuestionOption>): Promise<QuestionOption> {
+    const [updatedOption] = await db.update(questionOptions)
+      .set(option)
+      .where(eq(questionOptions.id, id))
+      .returning();
+    return updatedOption;
+  }
+
+  async deleteQuestionOption(id: number): Promise<void> {
+    await db.delete(questionOptions).where(eq(questionOptions.id, id));
+  }
+
+  // Exam Submissions
+  async getExamSubmissions(): Promise<ExamSubmission[]> {
+    return await db.select().from(examSubmissions).orderBy(desc(examSubmissions.createdAt));
+  }
+
+  async getExamSubmission(id: number): Promise<ExamSubmission | undefined> {
+    const [submission] = await db.select().from(examSubmissions).where(eq(examSubmissions.id, id));
+    return submission || undefined;
+  }
+
+  async getExamSubmissionsByStudent(studentId: number): Promise<ExamSubmission[]> {
+    return await db.select().from(examSubmissions).where(eq(examSubmissions.studentId, studentId));
+  }
+
+  async getExamSubmissionsByExam(examId: number): Promise<ExamSubmission[]> {
+    return await db.select().from(examSubmissions).where(eq(examSubmissions.examId, examId));
+  }
+
+  async getExamSubmissionByStudentAndExam(studentId: number, examId: number): Promise<ExamSubmission | undefined> {
+    const [submission] = await db.select().from(examSubmissions)
+      .where(and(eq(examSubmissions.studentId, studentId), eq(examSubmissions.examId, examId)));
+    return submission || undefined;
+  }
+
+  async createExamSubmission(submission: InsertExamSubmission): Promise<ExamSubmission> {
+    const [newSubmission] = await db.insert(examSubmissions).values(submission).returning();
+    return newSubmission;
+  }
+
+  async updateExamSubmission(id: number, submission: Partial<InsertExamSubmission>): Promise<ExamSubmission> {
+    const [updatedSubmission] = await db.update(examSubmissions)
+      .set({ ...submission, updatedAt: new Date() })
+      .where(eq(examSubmissions.id, id))
+      .returning();
+    return updatedSubmission;
+  }
+
+  async deleteExamSubmission(id: number): Promise<void> {
+    await db.delete(examSubmissions).where(eq(examSubmissions.id, id));
+  }
+
+  // Submission Answers
+  async getSubmissionAnswers(): Promise<SubmissionAnswer[]> {
+    return await db.select().from(submissionAnswers);
+  }
+
+  async getSubmissionAnswer(id: number): Promise<SubmissionAnswer | undefined> {
+    const [answer] = await db.select().from(submissionAnswers).where(eq(submissionAnswers.id, id));
+    return answer || undefined;
+  }
+
+  async getSubmissionAnswersBySubmission(submissionId: number): Promise<SubmissionAnswer[]> {
+    return await db.select().from(submissionAnswers).where(eq(submissionAnswers.submissionId, submissionId));
+  }
+
+  async createSubmissionAnswer(answer: InsertSubmissionAnswer): Promise<SubmissionAnswer> {
+    const [newAnswer] = await db.insert(submissionAnswers).values(answer).returning();
+    return newAnswer;
+  }
+
+  async updateSubmissionAnswer(id: number, answer: Partial<InsertSubmissionAnswer>): Promise<SubmissionAnswer> {
+    const [updatedAnswer] = await db.update(submissionAnswers)
+      .set({ ...answer, updatedAt: new Date() })
+      .where(eq(submissionAnswers.id, id))
+      .returning();
+    return updatedAnswer;
+  }
+
+  async deleteSubmissionAnswer(id: number): Promise<void> {
+    await db.delete(submissionAnswers).where(eq(submissionAnswers.id, id));
+  }
+
+  // Exam Results
+  async getExamResults(): Promise<ExamResult[]> {
+    return await db.select().from(examResults).orderBy(desc(examResults.createdAt));
+  }
+
+  async getExamResult(id: number): Promise<ExamResult | undefined> {
+    const [result] = await db.select().from(examResults).where(eq(examResults.id, id));
+    return result || undefined;
+  }
+
+  async getExamResultsByStudent(studentId: number): Promise<ExamResult[]> {
+    return await db.select().from(examResults).where(eq(examResults.studentId, studentId));
+  }
+
+  async getExamResultsByExam(examId: number): Promise<ExamResult[]> {
+    return await db.select().from(examResults).where(eq(examResults.examId, examId));
+  }
+
+  async getExamResultByStudentAndExam(studentId: number, examId: number): Promise<ExamResult | undefined> {
+    const [result] = await db.select().from(examResults)
+      .where(and(eq(examResults.studentId, studentId), eq(examResults.examId, examId)));
+    return result || undefined;
+  }
+
+  async createExamResult(result: InsertExamResult): Promise<ExamResult> {
+    const [newResult] = await db.insert(examResults).values(result).returning();
+    return newResult;
+  }
+
+  async updateExamResult(id: number, result: Partial<InsertExamResult>): Promise<ExamResult> {
+    const [updatedResult] = await db.update(examResults)
+      .set({ ...result, updatedAt: new Date() })
+      .where(eq(examResults.id, id))
+      .returning();
+    return updatedResult;
+  }
+
+  async deleteExamResult(id: number): Promise<void> {
+    await db.delete(examResults).where(eq(examResults.id, id));
   }
 }
 
