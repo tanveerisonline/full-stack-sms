@@ -22,11 +22,8 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-// Apply authentication to all routes
-router.use(authenticateToken);
-
-// Serve private objects (photos) with access control
-router.get("/objects/:objectPath(*)", async (req: AuthenticatedRequest, res: Response) => {
+// Serve private objects (photos) with access control (authenticated)
+router.get("/objects/:objectPath(*)", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id?.toString();
   const objectStorageService = new ObjectStorageService();
   
@@ -51,8 +48,8 @@ router.get("/objects/:objectPath(*)", async (req: AuthenticatedRequest, res: Res
   }
 });
 
-// Get upload URL for photo
-router.post("/upload", async (req: AuthenticatedRequest, res: Response) => {
+// Get upload URL for photo (no authentication required for getting presigned URL)
+router.post("/upload", async (req: Request, res: Response) => {
   try {
     const objectStorageService = new ObjectStorageService();
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -63,8 +60,8 @@ router.post("/upload", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Update user avatar
-router.put("/avatar", async (req: AuthenticatedRequest, res: Response) => {
+// Update user avatar (authenticated)
+router.put("/avatar", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.body.photoURL) {
     return res.status(400).json({ error: "photoURL is required" });
   }
@@ -100,8 +97,8 @@ router.put("/avatar", async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Update student avatar
-router.put("/student/:studentId/avatar", async (req: AuthenticatedRequest, res: Response) => {
+// Update student avatar (authenticated)
+router.put("/student/:studentId/avatar", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.body.photoURL) {
     return res.status(400).json({ error: "photoURL is required" });
   }
@@ -146,8 +143,8 @@ router.put("/student/:studentId/avatar", async (req: AuthenticatedRequest, res: 
   }
 });
 
-// Update teacher avatar
-router.put("/teacher/:teacherId/avatar", async (req: AuthenticatedRequest, res: Response) => {
+// Update teacher avatar (authenticated)
+router.put("/teacher/:teacherId/avatar", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.body.photoURL) {
     return res.status(400).json({ error: "photoURL is required" });
   }
