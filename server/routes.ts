@@ -406,16 +406,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve uploaded photos (convert Google Storage URLs to local serving)
-  app.get("/photos/:filename", async (req: Request, res: Response) => {
+  // Serve uploaded photos (convert private storage URLs to accessible endpoints)
+  app.get("/objects/*", async (req: Request, res: Response) => {
     try {
-      // For now, proxy the photo or return a placeholder
-      const filename = req.params.filename;
-      // You can implement actual photo retrieval from object storage here
-      res.redirect(`https://storage.googleapis.com/replit-objstore-49a4ed3c-8a65-4b08-8681-59afa70812d2/public/uploads/${filename}`);
+      const objectPath = req.path; // This will be something like '/objects/uploads/uuid'
+      console.log('Serving object:', objectPath);
+      
+      // Extract the filename from the path
+      const pathParts = objectPath.split('/');
+      const filename = pathParts[pathParts.length - 1];
+      
+      // For now, try to fetch the image directly and proxy it
+      const storageUrl = `https://storage.googleapis.com/replit-objstore-49a4ed3c-8a65-4b08-8681-59afa70812d2/.private${objectPath.replace('/objects', '')}`;
+      
+      // Fetch the image from storage and pipe it back
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch(storageUrl);
+      
+      if (!response.ok) {
+        return res.status(404).json({ error: 'Photo not found' });
+      }
+      
+      // Set appropriate headers
+      res.set({
+        'Content-Type': response.headers.get('content-type') || 'image/jpeg',
+        'Cache-Control': 'public, max-age=3600'
+      });
+      
+      // Pipe the image data to the response
+      response.body?.pipe(res);
+      
     } catch (error) {
       console.error('Photo serve error:', error);
-      res.status(404).json({ error: 'Photo not found' });
+      res.status(500).json({ error: 'Error serving photo' });
     }
   });
 

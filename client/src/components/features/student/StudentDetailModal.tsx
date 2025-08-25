@@ -20,6 +20,20 @@ import {
   Download
 } from 'lucide-react';
 
+// Convert Google Storage private URLs to local serving URLs
+const convertToLocalUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // Check if it's a Google Storage private URL
+  if (url.includes('storage.googleapis.com') && url.includes('/.private/')) {
+    // Extract the path after /.private/
+    const privatePath = url.split('/.private/')[1];
+    return `/objects/${privatePath}`;
+  }
+  
+  return url;
+};
+
 interface StudentDetailModalProps {
   student: Student | null;
   isOpen: boolean;
@@ -105,7 +119,14 @@ function StudentDetailModal({ student, isOpen, onClose, onEdit }: StudentDetailM
             <CardContent className="p-6">
               <div className="flex items-start space-x-6">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={student.avatar} alt={`${student.firstName} ${student.lastName}`} />
+                  <AvatarImage 
+                    src={student.avatar ? convertToLocalUrl(student.avatar) : undefined} 
+                    alt={`${student.firstName} ${student.lastName}`}
+                    onError={(e) => {
+                      console.log('Avatar image failed to load:', student.avatar);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
                   <AvatarFallback className="bg-primary-100 text-primary-700 text-lg">
                     {student.firstName[0]}{student.lastName[0]}
                   </AvatarFallback>

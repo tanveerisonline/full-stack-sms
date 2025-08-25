@@ -20,6 +20,20 @@ import {
 import StaffForm from '@/components/features/staff/StaffForm';
 import type { Teacher } from '@shared/schema';
 
+// Convert Google Storage private URLs to local serving URLs
+const convertToLocalUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // Check if it's a Google Storage private URL
+  if (url.includes('storage.googleapis.com') && url.includes('/.private/')) {
+    // Extract the path after /.private/
+    const privatePath = url.split('/.private/')[1];
+    return `/objects/${privatePath}`;
+  }
+  
+  return url;
+};
+
 export default function HR() {
   const [showForm, setShowForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
@@ -369,8 +383,12 @@ export default function HR() {
                               {teacher.avatar ? (
                                 <img
                                   className="h-10 w-10 rounded-full object-cover"
-                                  src={teacher.avatar}
+                                  src={convertToLocalUrl(teacher.avatar)}
                                   alt={`${teacher.firstName} ${teacher.lastName}`}
+                                  onError={(e) => {
+                                    console.log('Teacher avatar failed to load:', teacher.avatar);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
                                 />
                               ) : (
                                 <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
