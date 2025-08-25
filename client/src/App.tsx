@@ -15,6 +15,7 @@ import ForgotPassword from "@/pages/auth/forgot-password";
 // Main Pages
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
+import UserProfile from "@/pages/profile/UserProfile";
 import Settings from "@/pages/settings";
 import StudentRegistration from "@/pages/student-management/registration";
 import StudentProfiles from "@/pages/student-management/profiles";
@@ -80,6 +81,7 @@ function AuthenticatedRoutes() {
             <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/profile" component={Profile} />
+            <Route path="/user-profile" component={UserProfile} />
             <Route path="/settings" component={Settings} />
             <Route path="/students" component={StudentRegistration} />
             <Route path="/students/profiles" component={StudentProfiles} />

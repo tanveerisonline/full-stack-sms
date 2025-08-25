@@ -5,6 +5,8 @@ import type { Request, Response } from "express";
 import { storage } from "./storage";
 import { seedDatabase } from "./seed";
 import superAdminRoutes from "./superAdminRoutes";
+import adminRoutes from "./routes/adminRoutes";
+import photoRoutes from "./routes/photoRoutes";
 import bcrypt from 'bcrypt';
 import { generateAccessToken, createUserSession, authenticateToken } from './middleware/auth';
 import { db } from './db';
@@ -169,6 +171,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes (admin role and above)
   const adminRoutes = (await import('./routes/adminRoutes')).default;
   app.use('/api/admin', adminRoutes);
+  
+  // Mount photo routes
+  app.use('/api/photos', photoRoutes);
   
   // Role management routes (super admin only)
   const roleRoutes = (await import('./routes/roleRoutes')).default;

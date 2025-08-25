@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,54 +11,67 @@ import { ObjectUploader } from '@/components/ui/ObjectUploader';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, X } from 'lucide-react';
-import { GRADES } from '@/utils/constants';
-import { Student } from '@/types';
+import type { Teacher } from '@shared/schema';
 import type { UploadResult } from '@uppy/core';
 
-const studentFormSchema = z.object({
+const staffFormSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number must be at least 10 characters'),
-  grade: z.string().min(1, 'Please select a grade'),
+  employeeId: z.string().min(3, 'Employee ID must be at least 3 characters'),
+  department: z.string().min(1, 'Please select a department'),
+  subject: z.string().min(1, 'Subject is required'),
+  qualification: z.string().min(1, 'Qualification is required'),
+  experience: z.number().min(0, 'Experience cannot be negative'),
+  salary: z.number().min(0, 'Salary cannot be negative'),
+  hireDate: z.string().min(1, 'Hire date is required'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
   address: z.string().min(10, 'Address must be at least 10 characters'),
-  parentName: z.string().min(2, 'Parent name must be at least 2 characters'),
-  parentContact: z.string().min(10, 'Parent contact must be at least 10 characters'),
   avatar: z.string().optional(),
 });
 
-type StudentFormData = z.infer<typeof studentFormSchema>;
+type StaffFormData = z.infer<typeof staffFormSchema>;
 
-interface StudentFormProps {
+interface StaffFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: StudentFormData) => void;
-  student?: Student | null;
+  onSubmit: (data: StaffFormData) => void;
+  teacher?: Teacher | null;
   isLoading?: boolean;
 }
 
-function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: StudentFormProps) {
-  const [photoUrl, setPhotoUrl] = useState<string | null>(student?.avatar || null);
+const DEPARTMENTS = [
+  'Mathematics', 'Science', 'English', 'History', 'Geography', 
+  'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Physical Education',
+  'Art', 'Music', 'Administration', 'Library', 'Other'
+];
+
+function StaffForm({ isOpen, onClose, onSubmit, teacher, isLoading = false }: StaffFormProps) {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(teacher?.avatar || null);
   const { toast } = useToast();
 
-  const form = useForm<StudentFormData>({
-    resolver: zodResolver(studentFormSchema),
+  const form = useForm<StaffFormData>({
+    resolver: zodResolver(staffFormSchema),
     defaultValues: {
-      firstName: student?.firstName || '',
-      lastName: student?.lastName || '',
-      email: student?.email || '',
-      phone: student?.phone || '',
-      grade: student?.grade || '',
-      dateOfBirth: student?.dateOfBirth || '',
-      address: student?.address || '',
-      parentName: student?.parentName || '',
-      parentContact: student?.parentContact || '',
-      avatar: student?.avatar || '',
+      firstName: teacher?.firstName || '',
+      lastName: teacher?.lastName || '',
+      email: teacher?.email || '',
+      phone: teacher?.phone || '',
+      employeeId: (teacher as any)?.employeeId || '',
+      department: (teacher as any)?.department || '',
+      subject: (teacher as any)?.subject || (teacher as any)?.subjects || '',
+      qualification: (teacher as any)?.qualification || '',
+      experience: (teacher as any)?.experience || 0,
+      salary: Number((teacher as any)?.salary) || 0,
+      hireDate: (teacher as any)?.hireDate || '',
+      dateOfBirth: teacher?.dateOfBirth || '',
+      address: teacher?.address || '',
+      avatar: teacher?.avatar || '',
     },
   });
 
-  const handleSubmit = (data: StudentFormData) => {
+  const handleSubmit = (data: StaffFormData) => {
     // Include photo URL in form data
     const submitData = { ...data, avatar: photoUrl || '' };
     onSubmit(submitData);
@@ -96,7 +108,7 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
         form.setValue('avatar', uploadURL);
         toast({
           title: "Photo Uploaded",
-          description: "Student photo has been uploaded successfully.",
+          description: "Staff photo has been uploaded successfully.",
         });
       }
     }
@@ -109,10 +121,10 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-student-form">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-staff-form">
         <DialogHeader>
           <DialogTitle data-testid="text-dialog-title">
-            {student ? 'Edit Student' : 'Add New Student'}
+            {teacher ? 'Edit Staff Member' : 'Add New Staff Member'}
           </DialogTitle>
         </DialogHeader>
         
@@ -122,17 +134,17 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
             <div className="flex flex-col items-center space-y-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
               <div className="text-center">
                 <Camera className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Student Photo</h3>
-                <p className="mt-1 text-sm text-gray-500">Upload a photo for ID card and registration</p>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Staff Photo</h3>
+                <p className="mt-1 text-sm text-gray-500">Upload a photo for ID card and staff records</p>
               </div>
               
               {photoUrl ? (
                 <div className="relative">
                   <img
                     src={photoUrl}
-                    alt="Student"
+                    alt="Staff"
                     className="h-32 w-32 rounded-lg object-cover border-2 border-gray-200"
-                    data-testid="img-student-photo"
+                    data-testid="img-staff-photo"
                   />
                   <Button
                     type="button"
@@ -159,7 +171,7 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FormField
                 control={form.control}
                 name="firstName"
@@ -198,6 +210,24 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
 
               <FormField
                 control={form.control}
+                name="employeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employee ID</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="EMP001" 
+                        {...field} 
+                        data-testid="input-employeeId"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -205,7 +235,7 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
                     <FormControl>
                       <Input 
                         type="email"
-                        placeholder="student@email.com" 
+                        placeholder="teacher@school.com" 
                         {...field} 
                         data-testid="input-email"
                       />
@@ -223,7 +253,7 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="+1 (555) 123-4567" 
+                        placeholder="1234567890" 
                         {...field} 
                         data-testid="input-phone"
                       />
@@ -235,24 +265,118 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
 
               <FormField
                 control={form.control}
-                name="grade"
+                name="department"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Grade</FormLabel>
+                    <FormLabel>Department</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-grade">
-                          <SelectValue placeholder="Select Grade" />
+                        <SelectTrigger data-testid="select-department">
+                          <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {GRADES.map((grade) => (
-                          <SelectItem key={grade} value={grade}>
-                            {grade}
+                        {DEPARTMENTS.map((dept) => (
+                          <SelectItem key={dept} value={dept}>
+                            {dept}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Mathematics" 
+                        {...field} 
+                        data-testid="input-subject"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="qualification"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qualification</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="M.Sc. Mathematics" 
+                        {...field} 
+                        data-testid="input-qualification"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="experience"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Experience (Years)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        placeholder="5" 
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        data-testid="input-experience"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="salary"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Salary</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        placeholder="50000" 
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        data-testid="input-salary"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="hireDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hire Date</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="date"
+                        {...field} 
+                        data-testid="input-hireDate"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -266,45 +390,9 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
                     <FormLabel>Date of Birth</FormLabel>
                     <FormControl>
                       <Input 
-                        type="date" 
+                        type="date"
                         {...field} 
                         data-testid="input-dateOfBirth"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="parentName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Parent/Guardian Name</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter parent name" 
-                        {...field} 
-                        data-testid="input-parentName"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="parentContact"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Parent Contact</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="+1 (555) 123-4567" 
-                        {...field} 
-                        data-testid="input-parentContact"
                       />
                     </FormControl>
                     <FormMessage />
@@ -320,11 +408,10 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
                 <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Enter full address" 
-                      rows={3}
+                    <Input 
+                      placeholder="123 Main St, City, State, ZIP" 
                       {...field} 
-                      data-testid="textarea-address"
+                      data-testid="input-address"
                     />
                   </FormControl>
                   <FormMessage />
@@ -332,21 +419,23 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
               )}
             />
 
-            <div className="flex justify-end space-x-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+            <div className="flex gap-4 pt-4">
+              <Button
+                type="button"
+                variant="outline"
                 onClick={onClose}
+                className="flex-1"
                 data-testid="button-cancel"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isLoading}
+                className="flex-1"
                 data-testid="button-submit"
               >
-                {isLoading ? 'Saving...' : (student ? 'Update Student' : 'Add Student')}
+                {isLoading ? 'Saving...' : (teacher ? 'Update Staff' : 'Add Staff')}
               </Button>
             </div>
           </form>
@@ -355,4 +444,5 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
     </Dialog>
   );
 }
-export default StudentForm;
+
+export default StaffForm;
