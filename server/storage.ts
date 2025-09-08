@@ -177,7 +177,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const result = await db.insert(users).values(insertUser);
+    const insertId = result.insertId || result[0]?.insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [user] = await db.select().from(users).where(eq(users.id, Number(insertId)));
+    if (!user) throw new Error('Failed to retrieve created user');
     return user;
   }
 
@@ -192,15 +196,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createStudent(student: InsertStudent): Promise<Student> {
-    const [newStudent] = await db.insert(students).values(student).returning();
+    const result = await db.insert(students).values(student);
+    const insertId = result.insertId || result[0]?.insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newStudent] = await db.select().from(students).where(eq(students.id, Number(insertId)));
+    if (!newStudent) throw new Error('Failed to retrieve created student');
     return newStudent;
   }
 
   async updateStudent(id: number, student: Partial<InsertStudent>): Promise<Student> {
-    const [updatedStudent] = await db.update(students)
+    await db.update(students)
       .set({ ...student, updatedAt: new Date() })
-      .where(eq(students.id, id))
-      .returning();
+      .where(eq(students.id, id));
+    const [updatedStudent] = await db.select().from(students).where(eq(students.id, id));
+    if (!updatedStudent) throw new Error('Student not found');
     return updatedStudent;
   }
 
@@ -219,15 +228,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTeacher(teacher: InsertTeacher): Promise<Teacher> {
-    const [newTeacher] = await db.insert(teachers).values(teacher).returning();
+    const result = await db.insert(teachers).values(teacher);
+    const insertId = result.insertId || result[0]?.insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newTeacher] = await db.select().from(teachers).where(eq(teachers.id, Number(insertId)));
+    if (!newTeacher) throw new Error('Failed to retrieve created teacher');
     return newTeacher;
   }
 
   async updateTeacher(id: number, teacher: Partial<InsertTeacher>): Promise<Teacher> {
-    const [updatedTeacher] = await db.update(teachers)
+    await db.update(teachers)
       .set({ ...teacher, updatedAt: new Date() })
-      .where(eq(teachers.id, id))
-      .returning();
+      .where(eq(teachers.id, id));
+    const [updatedTeacher] = await db.select().from(teachers).where(eq(teachers.id, id));
+    if (!updatedTeacher) throw new Error('Teacher not found');
     return updatedTeacher;
   }
 
@@ -246,15 +260,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createClass(classData: InsertClass): Promise<Class> {
-    const [newClass] = await db.insert(classes).values(classData).returning();
+    await db.insert(classes).values(classData);
+    // Get the most recently created class with matching data
+    const [newClass] = await db.select().from(classes)
+      .where(
+        and(
+          eq(classes.name, classData.name),
+          eq(classes.grade, classData.grade),
+          eq(classes.subject, classData.subject)
+        )
+      )
+      .orderBy(desc(classes.id))
+      .limit(1);
+    
+    if (!newClass) {
+      throw new Error('Failed to retrieve created class');
+    }
     return newClass;
   }
 
   async updateClass(id: number, classData: Partial<InsertClass>): Promise<Class> {
-    const [updatedClass] = await db.update(classes)
+    await db.update(classes)
       .set({ ...classData, updatedAt: new Date() })
-      .where(eq(classes.id, id))
-      .returning();
+      .where(eq(classes.id, id));
+    // Get the updated class
+    const [updatedClass] = await db.select().from(classes).where(eq(classes.id, id));
     return updatedClass;
   }
 
@@ -317,7 +347,7 @@ export class DatabaseStorage implements IStorage {
 
   // Attendance
   async getAttendance(): Promise<Attendance[]> {
-    return await db.select().from(attendance).orderBy(desc(attendance.createdAt));
+    return await db.select().from(attendance).orderBy(desc(attendance.id));
   }
 
   async getAttendanceByStudent(studentId: number): Promise<Attendance[]> {
@@ -333,7 +363,7 @@ export class DatabaseStorage implements IStorage {
           eq(attendance.date, date)
         )
       )
-      .orderBy(desc(attendance.createdAt));
+      .orderBy(desc(attendance.id));
   }
 
   async createAttendance(attendanceData: InsertAttendance): Promise<Attendance> {

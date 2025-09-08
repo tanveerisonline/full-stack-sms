@@ -18,10 +18,13 @@ function useStudents() {
     mutationFn: async (studentData: Omit<InsertStudent, 'rollNumber'>) => {
       // Generate a unique roll number based on timestamp to avoid conflicts
       const rollNumber = `STU${Date.now().toString().slice(-6)}`;
-      const response = await apiRequest('POST', '/api/students', {
-        ...studentData,
-        rollNumber,
-        status: 'active'
+      const response = await apiRequest('/api/students', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...studentData,
+          rollNumber,
+          status: 'active'
+        })
       });
       return response.json();
     },
@@ -33,7 +36,10 @@ function useStudents() {
   // Mutation for updating a student
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: Partial<InsertStudent> }) => {
-      const response = await apiRequest('PUT', `/api/students/${id}`, updates);
+      const response = await apiRequest(`/api/students/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -44,7 +50,7 @@ function useStudents() {
   // Mutation for deleting a student
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/students/${id}`);
+      await apiRequest(`/api/students/${id}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });

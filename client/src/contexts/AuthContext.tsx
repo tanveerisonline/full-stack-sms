@@ -34,7 +34,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        console.log('AuthContext: Loading stored user:', parsedUser);
+        setUser(parsedUser);
       } catch (error) {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -50,7 +52,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Check if user is already stored in localStorage (called after API login)
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        console.log('AuthContext login: Setting user from localStorage:', parsedUser);
+        setUser(parsedUser);
         setIsLoading(false);
         return true;
       }

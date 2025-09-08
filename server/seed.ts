@@ -1,9 +1,56 @@
 import { storage } from './storage';
+import bcrypt from 'bcrypt';
+import { db } from './db';
+import { users } from '../shared/schemas/user';
 
 export async function seedDatabase() {
   console.log('🌱 Seeding database with sample data...');
 
   try {
+    // Create admin users first
+    console.log('Creating admin users...');
+    
+    // Create super admin user
+    const superAdminPassword = await bcrypt.hash('superadmin123', 10);
+    await db.insert(users).values({
+      username: 'superadmin',
+      password: superAdminPassword,
+      role: 'super_admin',
+      firstName: 'Super',
+      lastName: 'Admin',
+      email: 'superadmin@edumanage.pro',
+      phone: '+1234567890',
+      isActive: true,
+      isApproved: true
+    }).onDuplicateKeyUpdate({
+      set: {
+        password: superAdminPassword,
+        updatedAt: new Date()
+      }
+    });
+    
+    // Create regular admin user
+    const adminPassword = await bcrypt.hash('password', 10);
+    await db.insert(users).values({
+      username: 'admin',
+      password: adminPassword,
+      role: 'admin',
+      firstName: 'School',
+      lastName: 'Admin',
+      email: 'admin@school.edu',
+      phone: '+1234567891',
+      isActive: true,
+      isApproved: true
+    }).onDuplicateKeyUpdate({
+      set: {
+        password: adminPassword,
+        updatedAt: new Date()
+      }
+    });
+    
+    console.log('✅ Created admin users');
+    console.log('  - Super Admin: superadmin@edumanage.pro / superadmin123');
+    console.log('  - Admin: admin@school.edu / password');
     // Check if data already exists
     const existingStudents = await storage.getStudents();
     if (existingStudents.length > 1) { // Allow re-seeding if minimal data

@@ -1,21 +1,21 @@
 import { relations } from 'drizzle-orm';
-import { date, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, date, int, mysqlTable, text, timestamp, varchar } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from "zod";
 import { students } from './student';
 import { teachers } from './teacher';
 
 // Attendance Management Tables
-export const attendance = pgTable('attendance', {
-  id: serial('id').primaryKey(),
-  studentId: integer('student_id').references(() => students.id).notNull(),
+export const attendance = mysqlTable('attendance', {
+  id: int('id').primaryKey().autoincrement(),
+  studentId: int('student_id').references(() => students.id).notNull(),
+  teacherId: int('teacher_id').references(() => teachers.id),
   date: date('date').notNull(),
-  status: text('status').notNull(),
-  grade: text('grade').default('Grade 10'),
-  section: text('section').default('A'),
+  status: varchar('status', { length: 20 }).notNull(),
   remarks: text('remarks'),
-  markedBy: integer('marked_by').references(() => teachers.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  grade: varchar('grade', { length: 20 }),
+  section: varchar('section', { length: 20 }),
+  subject: varchar('subject', { length: 100 }),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
@@ -25,8 +25,8 @@ export const attendanceRelations = relations(attendance, ({ one }) => ({
     fields: [attendance.studentId],
     references: [students.id],
   }),
-  markedByTeacher: one(teachers, {
-    fields: [attendance.markedBy],
+  teacher: one(teachers, {
+    fields: [attendance.teacherId],
     references: [teachers.id],
   }),
 }));

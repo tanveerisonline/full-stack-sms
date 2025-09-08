@@ -1,25 +1,25 @@
 import { relations } from 'drizzle-orm';
-import { date, integer, pgTable, serial, text, timestamp, numeric } from 'drizzle-orm/pg-core';
+import { date, int, mysqlTable, text, timestamp, decimal, varchar } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from "zod";
 
 // Teacher Management Tables
-export const teachers = pgTable('teachers', {
-  id: serial('id').primaryKey(),
-  employeeId: text('employee_id').notNull().unique(),
-  firstName: text('first_name').notNull(),
-  lastName: text('last_name').notNull(),
-  email: text('email').notNull().unique(),
-  phone: text('phone'),
+export const teachers = mysqlTable('teachers', {
+  id: int('id').primaryKey().autoincrement(),
+  employeeId: varchar('employee_id', { length: 50 }).notNull().unique(),
+  firstName: varchar('first_name', { length: 100 }).notNull(),
+  lastName: varchar('last_name', { length: 100 }).notNull(),
+  email: varchar('email', { length: 100 }).notNull().unique(),
+  phone: varchar('phone', { length: 20 }),
   dateOfBirth: date('date_of_birth'),
   hireDate: date('hire_date').notNull(),
-  department: text('department'),
-  subject: text('subject'),
+  department: varchar('department', { length: 100 }),
+  subject: varchar('subject', { length: 100 }),
   qualification: text('qualification'),
-  experience: integer('experience'),
-  salary: numeric('salary', { precision: 10, scale: 2 }),
+  experience: int('experience'),
+  salary: decimal('salary', { precision: 10, scale: 2 }),
   address: text('address'),
-  status: text('status').default('active').notNull(),
+  status: varchar('status', { length: 20 }).default('active').notNull(),
   avatar: text('avatar'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

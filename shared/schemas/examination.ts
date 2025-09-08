@@ -1,29 +1,28 @@
 import { 
-  pgTable, 
-  serial, 
+  mysqlTable, 
+  int, 
   varchar, 
   text, 
   timestamp, 
-  integer, 
   decimal, 
   boolean,
-  jsonb,
+  json,
   unique
-} from 'drizzle-orm/pg-core';
+} from 'drizzle-orm/mysql-core';
 import { relations, sql } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
 // Exams table - Main exam metadata
-export const exams = pgTable('exams', {
-  id: serial('id').primaryKey(),
+export const exams = mysqlTable('exams', {
+  id: int('id').primaryKey().autoincrement(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   subject: varchar('subject', { length: 100 }).notNull(),
   class: varchar('class', { length: 50 }).notNull(),
-  teacherId: integer('teacher_id').notNull(),
-  totalMarks: integer('total_marks').notNull().default(0),
-  duration: integer('duration').notNull(), // Duration in minutes
+  teacherId: int('teacher_id').notNull(),
+  totalMarks: int('total_marks').notNull().default(0),
+  duration: int('duration').notNull(), // Duration in minutes
   instructions: text('instructions'),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, published, completed, cancelled
   startTime: timestamp('start_time'),
@@ -31,54 +30,54 @@ export const exams = pgTable('exams', {
   allowLateSubmission: boolean('allow_late_submission').default(false),
   showResultsAfterSubmission: boolean('show_results_after_submission').default(false),
   shuffleQuestions: boolean('shuffle_questions').default(false),
-  maxAttempts: integer('max_attempts').default(1),
-  passingMarks: integer('passing_marks'),
+  maxAttempts: int('max_attempts').default(1),
+  passingMarks: int('passing_marks'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Questions table - Exam questions
-export const questions = pgTable('questions', {
-  id: serial('id').primaryKey(),
-  examId: integer('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
+export const questions = mysqlTable('questions', {
+  id: int('id').primaryKey().autoincrement(),
+  examId: int('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
   questionText: text('question_text').notNull(),
   questionType: varchar('question_type', { length: 20 }).notNull(), // multiple_choice, true_false, short_answer, essay
-  marks: integer('marks').notNull().default(1),
+  marks: int('marks').notNull().default(1),
   explanation: text('explanation'), // Explanation for the correct answer
-  orderIndex: integer('order_index').notNull().default(0),
+  orderIndex: int('order_index').notNull().default(0),
   isRequired: boolean('is_required').default(true),
-  metadata: jsonb('metadata'), // Additional question data (images, formulas, etc.)
+  metadata: json('metadata'), // Additional question data (images, formulas, etc.)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Question Options table - Multiple choice options
-export const questionOptions = pgTable('question_options', {
-  id: serial('id').primaryKey(),
-  questionId: integer('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
+export const questionOptions = mysqlTable('question_options', {
+  id: int('id').primaryKey().autoincrement(),
+  questionId: int('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
   optionText: text('option_text').notNull(),
   isCorrect: boolean('is_correct').default(false),
-  orderIndex: integer('order_index').notNull().default(0),
+  orderIndex: int('order_index').notNull().default(0),
   explanation: text('explanation'), // Explanation for this specific option
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // Exam Submissions table - Student exam submissions
-export const examSubmissions = pgTable('exam_submissions', {
-  id: serial('id').primaryKey(),
-  examId: integer('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
-  studentId: integer('student_id').notNull(),
-  attemptNumber: integer('attempt_number').notNull().default(1),
+export const examSubmissions = mysqlTable('exam_submissions', {
+  id: int('id').primaryKey().autoincrement(),
+  examId: int('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
+  studentId: int('student_id').notNull(),
+  attemptNumber: int('attempt_number').notNull().default(1),
   status: varchar('status', { length: 20 }).notNull().default('in_progress'), // in_progress, submitted, graded, expired
   startedAt: timestamp('started_at').defaultNow().notNull(),
   submittedAt: timestamp('submitted_at'),
   autoSubmittedAt: timestamp('auto_submitted_at'), // For time-based auto submission
   totalScore: decimal('total_score', { precision: 5, scale: 2 }),
-  maxScore: integer('max_score'),
+  maxScore: int('max_score'),
   percentage: decimal('percentage', { precision: 5, scale: 2 }),
-  timeSpent: integer('time_spent'), // Time spent in minutes
+  timeSpent: int('time_spent'), // Time spent in minutes
   isLateSubmission: boolean('is_late_submission').default(false),
-  metadata: jsonb('metadata'), // Additional submission data
+  metadata: json('metadata'), // Additional submission data
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -86,18 +85,18 @@ export const examSubmissions = pgTable('exam_submissions', {
 }));
 
 // Submission Answers table - Individual question answers
-export const submissionAnswers = pgTable('submission_answers', {
-  id: serial('id').primaryKey(),
-  submissionId: integer('submission_id').notNull().references(() => examSubmissions.id, { onDelete: 'cascade' }),
-  questionId: integer('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
+export const submissionAnswers = mysqlTable('submission_answers', {
+  id: int('id').primaryKey().autoincrement(),
+  submissionId: int('submission_id').notNull().references(() => examSubmissions.id, { onDelete: 'cascade' }),
+  questionId: int('question_id').notNull().references(() => questions.id, { onDelete: 'cascade' }),
   answerText: text('answer_text'), // For text-based answers
-  selectedOptionId: integer('selected_option_id').references(() => questionOptions.id), // For multiple choice
-  selectedOptions: jsonb('selected_options'), // For multiple select questions
+  selectedOptionId: int('selected_option_id').references(() => questionOptions.id), // For multiple choice
+  selectedOptions: json('selected_options'), // For multiple select questions
   isCorrect: boolean('is_correct'),
   marksAwarded: decimal('marks_awarded', { precision: 5, scale: 2 }),
-  maxMarks: integer('max_marks'),
-  timeSpent: integer('time_spent'), // Time spent on this question in seconds
-  metadata: jsonb('metadata'), // Additional answer data
+  maxMarks: int('max_marks'),
+  timeSpent: int('time_spent'), // Time spent on this question in seconds
+  metadata: json('metadata'), // Additional answer data
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -105,21 +104,21 @@ export const submissionAnswers = pgTable('submission_answers', {
 }));
 
 // Results table - Final exam results and analytics
-export const examResults = pgTable('exam_results', {
-  id: serial('id').primaryKey(),
-  examId: integer('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
-  studentId: integer('student_id').notNull(),
-  submissionId: integer('submission_id').notNull().references(() => examSubmissions.id, { onDelete: 'cascade' }),
+export const examResults = mysqlTable('exam_results', {
+  id: int('id').primaryKey().autoincrement(),
+  examId: int('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
+  studentId: int('student_id').notNull(),
+  submissionId: int('submission_id').notNull().references(() => examSubmissions.id, { onDelete: 'cascade' }),
   totalScore: decimal('total_score', { precision: 5, scale: 2 }).notNull(),
-  maxScore: integer('max_score').notNull(),
+  maxScore: int('max_score').notNull(),
   percentage: decimal('percentage', { precision: 5, scale: 2 }).notNull(),
   grade: varchar('grade', { length: 5 }), // A+, A, B+, B, C+, C, D, F
   passed: boolean('passed').notNull(),
-  rank: integer('rank'), // Rank in the class
-  timeSpent: integer('time_spent'), // Total time spent in minutes
-  correctAnswers: integer('correct_answers'),
-  totalQuestions: integer('total_questions'),
-  analytics: jsonb('analytics'), // Detailed performance analytics
+  rank: int('rank'), // Rank in the class
+  timeSpent: int('time_spent'), // Total time spent in minutes
+  correctAnswers: int('correct_answers'),
+  totalQuestions: int('total_questions'),
+  analytics: json('analytics'), // Detailed performance analytics
   remarks: text('remarks'), // Teacher remarks
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

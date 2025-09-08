@@ -1,0 +1,17 @@
+{
+  "program": {
+    "fileInfos": {
+      "e:\\SchoolPilot\\drizzle.config.ts": {
+        "version": "1.0.0",
+        "signature": 1234567890,
+        "affectsGlobalScope": true
+      }
+    },
+    "options": {
+      "configFilePath": "e:\\SchoolPilot\\tsconfig.json"
+    },
+    "referencedMap": {},
+    "exportedModulesMap": {}
+  },
+  "version": "5.4.2"
+}

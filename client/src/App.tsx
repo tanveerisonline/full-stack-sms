@@ -44,6 +44,10 @@ import NotFound from "@/pages/not-found";
 function AuthenticatedRoutes() {
   const { user } = useAuth();
   
+  console.log('AuthenticatedRoutes: Current user:', user);
+  console.log('AuthenticatedRoutes: User role:', user?.role);
+  console.log('AuthenticatedRoutes: Is super_admin?', user?.role === 'super_admin');
+  
   return (
     <Switch>
       {/* Super Admin Dashboard - render without Layout, only for super_admin role */}

@@ -1,11 +1,11 @@
-import { pgTable, serial, varchar, decimal, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { mysqlTable, int, varchar, decimal, text, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { teachers } from "./teacher";
 
-export const payroll = pgTable("payroll", {
-  id: serial("id").primaryKey(),
-  teacherId: integer("teacher_id").notNull().references(() => teachers.id),
+export const payroll = mysqlTable("payroll", {
+  id: int("id").primaryKey().autoincrement(),
+  teacherId: int("teacher_id").notNull().references(() => teachers.id),
   month: varchar("month", { length: 20 }).notNull(),
   year: varchar("year", { length: 4 }).notNull(),
   basicSalary: decimal("basic_salary", { precision: 10, scale: 2 }).notNull(),

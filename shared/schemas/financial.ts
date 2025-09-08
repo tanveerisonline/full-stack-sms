@@ -1,21 +1,21 @@
 import { relations } from 'drizzle-orm';
-import { date, integer, pgTable, serial, text, timestamp, numeric } from 'drizzle-orm/pg-core';
+import { date, int, mysqlTable, text, timestamp, decimal, varchar } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from "zod";
 import { students } from './student';
 
 // Financial Management Tables
-export const transactions = pgTable('transactions', {
-  id: serial('id').primaryKey(),
-  studentId: integer('student_id').references(() => students.id).notNull(),
-  type: text('type').notNull(),
-  amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
+export const transactions = mysqlTable('transactions', {
+  id: int('id').primaryKey().autoincrement(),
+  studentId: int('student_id').references(() => students.id).notNull(),
+  type: varchar('type', { length: 50 }).notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
   description: text('description'),
   dueDate: date('due_date'),
   paidDate: date('paid_date'),
-  status: text('status').default('pending').notNull(),
-  paymentMethod: text('payment_method'),
-  referenceNumber: text('reference_number'),
+  status: varchar('status', { length: 20 }).default('pending').notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }),
+  referenceNumber: varchar('reference_number', { length: 100 }),
   remarks: text('remarks'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

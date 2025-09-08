@@ -14,7 +14,10 @@ function useTeachers() {
   // Mutation for creating a teacher
   const createMutation = useMutation({
     mutationFn: async (teacherData: InsertTeacher) => {
-      const response = await apiRequest('POST', '/api/teachers', teacherData);
+      const response = await apiRequest('/api/teachers', {
+        method: 'POST',
+        body: JSON.stringify(teacherData)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -25,7 +28,10 @@ function useTeachers() {
   // Mutation for updating a teacher
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: Partial<InsertTeacher> }) => {
-      const response = await apiRequest('PUT', `/api/teachers/${id}`, updates);
+      const response = await apiRequest(`/api/teachers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -36,7 +42,7 @@ function useTeachers() {
   // Mutation for deleting a teacher
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/teachers/${id}`);
+      await apiRequest(`/api/teachers/${id}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/teachers'] });

@@ -1,15 +1,15 @@
 import { relations } from 'drizzle-orm';
-import { boolean, date, integer, pgTable, serial, text, timestamp, numeric } from 'drizzle-orm/pg-core';
+import { boolean, date, int, mysqlTable, text, timestamp, decimal, varchar } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from "zod";
 
 // Student Management Tables
-export const students = pgTable('students', {
-  id: serial('id').primaryKey(),
-  rollNumber: text('roll_number').notNull().unique(),
+export const students = mysqlTable('students', {
+  id: int('id').primaryKey().autoincrement(),
+  rollNumber: varchar('roll_number', { length: 50 }).notNull().unique(),
   firstName: text('first_name').notNull(),
   lastName: text('last_name').notNull(),
-  email: text('email').unique(),
+  email: varchar('email', { length: 255 }).unique(),
   phone: text('phone'),
   dateOfBirth: date('date_of_birth'),
   grade: text('grade').notNull(),

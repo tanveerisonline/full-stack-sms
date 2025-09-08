@@ -1,71 +1,71 @@
 import { relations } from 'drizzle-orm';
-import { date, integer, pgTable, serial, text, timestamp, numeric } from 'drizzle-orm/pg-core';
+import { date, int, mysqlTable, text, timestamp, decimal, varchar } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from "zod";
 import { teachers } from './teacher';
 import { students } from './student';
 
 // Academic Management Tables
-export const classes = pgTable('classes', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  grade: text('grade').notNull(),
-  section: text('section'),
-  subject: text('subject').notNull(),
-  teacherId: integer('teacher_id').references(() => teachers.id),
-  room: text('room'),
+export const classes = mysqlTable('classes', {
+  id: int('id').primaryKey().autoincrement(),
+  name: varchar('name', { length: 100 }).notNull(),
+  grade: varchar('grade', { length: 20 }).notNull(),
+  section: varchar('section', { length: 20 }),
+  subject: varchar('subject', { length: 100 }).notNull(),
+  teacherId: int('teacher_id').references(() => teachers.id),
+  room: varchar('room', { length: 50 }),
   schedule: text('schedule'),
-  maxStudents: integer('max_students'),
-  currentStudents: integer('current_students').default(0),
-  status: text('status').default('active').notNull(),
+  maxStudents: int('max_students'),
+  currentStudents: int('current_students').default(0),
+  status: varchar('status', { length: 20 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const timetable = pgTable('timetable', {
-  id: serial('id').primaryKey(),
-  grade: text('grade').notNull(),
-  section: text('section'),
-  dayOfWeek: text('day_of_week').notNull(),
-  period: integer('period').notNull(),
-  subject: text('subject').notNull(),
-  teacherId: integer('teacher_id').references(() => teachers.id),
-  room: text('room'),
-  startTime: text('start_time').notNull(),
-  endTime: text('end_time').notNull(),
-  status: text('status').default('active').notNull(),
+export const timetable = mysqlTable('timetable', {
+  id: int('id').primaryKey().autoincrement(),
+  grade: varchar('grade', { length: 20 }).notNull(),
+  section: varchar('section', { length: 20 }),
+  dayOfWeek: varchar('day_of_week', { length: 20 }).notNull(),
+  period: int('period').notNull(),
+  subject: varchar('subject', { length: 100 }).notNull(),
+  teacherId: int('teacher_id').references(() => teachers.id),
+  room: varchar('room', { length: 50 }),
+  startTime: varchar('start_time', { length: 10 }).notNull(),
+  endTime: varchar('end_time', { length: 10 }).notNull(),
+  status: varchar('status', { length: 20 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const assignments = pgTable('assignments', {
-  id: serial('id').primaryKey(),
-  title: text('title').notNull(),
+export const assignments = mysqlTable('assignments', {
+  id: int('id').primaryKey().autoincrement(),
+  title: varchar('title', { length: 200 }).notNull(),
   description: text('description'),
-  subject: text('subject').notNull(),
-  grade: text('grade').notNull(),
-  section: text('section'),
-  teacherId: integer('teacher_id').references(() => teachers.id),
+  subject: varchar('subject', { length: 100 }).notNull(),
+  grade: varchar('grade', { length: 20 }).notNull(),
+  section: varchar('section', { length: 20 }),
+  teacherId: int('teacher_id').references(() => teachers.id),
   dueDate: date('due_date').notNull(),
-  totalMarks: integer('total_marks'),
+  totalMarks: int('total_marks'),
   instructions: text('instructions'),
   attachments: text('attachments'),
-  status: text('status').default('active').notNull(),
+  status: varchar('status', { length: 20 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const grades = pgTable('grades', {
-  id: serial('id').primaryKey(),
-  studentId: integer('student_id').references(() => students.id).notNull(),
-  assignmentId: integer('assignment_id').references(() => assignments.id),
-  subject: text('subject').notNull(),
-  examType: text('exam_type'),
-  marksObtained: numeric('marks_obtained', { precision: 5, scale: 2 }),
-  totalMarks: numeric('total_marks', { precision: 5, scale: 2 }),
-  grade: text('grade'),
+export const grades = mysqlTable('grades', {
+  id: int('id').primaryKey().autoincrement(),
+  studentId: int('student_id').references(() => students.id).notNull(),
+  assignmentId: int('assignment_id').references(() => assignments.id),
+  subject: varchar('subject', { length: 100 }).notNull(),
+  examType: varchar('exam_type', { length: 50 }),
+  marksObtained: decimal('marks_obtained', { precision: 5, scale: 2 }),
+  totalMarks: decimal('total_marks', { precision: 5, scale: 2 }),
+  grade: varchar('grade', { length: 10 }),
   remarks: text('remarks'),
-  gradedBy: integer('graded_by').references(() => teachers.id),
+  gradedBy: int('graded_by').references(() => teachers.id),
   gradedAt: timestamp('graded_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

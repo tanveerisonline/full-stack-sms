@@ -1,23 +1,23 @@
 import { relations } from 'drizzle-orm';
-import { date, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { date, int, mysqlTable, text, timestamp, boolean, varchar } from 'drizzle-orm/mysql-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from "zod";
 import { users } from './user';
 
 // Communication Management Tables
-export const announcements = pgTable('announcements', {
-  id: serial('id').primaryKey(),
-  title: text('title').notNull(),
+export const announcements = mysqlTable('announcements', {
+  id: int('id').primaryKey().autoincrement(),
+  title: varchar('title', { length: 200 }).notNull(),
   content: text('content').notNull(),
-  type: text('type').notNull(),
-  targetAudience: text('target_audience').notNull(),
-  grade: text('grade'),
-  section: text('section'),
+  type: varchar('type', { length: 50 }).notNull(),
+  targetAudience: varchar('target_audience', { length: 50 }).notNull(),
+  grade: varchar('grade', { length: 20 }),
+  section: varchar('section', { length: 20 }),
   publishDate: date('publish_date').notNull(),
   expiryDate: date('expiry_date'),
-  priority: text('priority').default('normal').notNull(),
-  status: text('status').default('active').notNull(),
-  createdBy: integer('created_by').references(() => users.id),
+  priority: varchar('priority', { length: 20 }).default('normal').notNull(),
+  status: varchar('status', { length: 20 }).default('active').notNull(),
+  createdBy: int('created_by').references(() => users.id),
   attachments: text('attachments'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
