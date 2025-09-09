@@ -56,7 +56,7 @@ router.use(requireSuperAdmin);
 // Dashboard overview stats
 router.get('/dashboard/stats', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get user counts
+    // Get user counts with null safety
     const [userStats] = await db
       .select({ count: count() })
       .from(users);
@@ -79,15 +79,15 @@ router.get('/dashboard/stats', async (req: AuthenticatedRequest, res: Response) 
       .from(users)
       .where(sql`role IN ('admin', 'super_admin', 'Super Administrator')`);
 
-    // Get financial summary
-    const [revenueData] = await db
+    // Get financial summary with null safety
+    const revenueData = await db
       .select({
         total: sum(transactions.amount),
       })
       .from(transactions)
       .where(eq(transactions.status, 'completed'));
 
-    const [pendingDues] = await db
+    const pendingDuesData = await db
       .select({
         total: sum(transactions.amount),
       })
@@ -100,28 +100,57 @@ router.get('/dashboard/stats', async (req: AuthenticatedRequest, res: Response) 
     const hours = Math.floor((uptimeSeconds % (24 * 60 * 60)) / (60 * 60));
     const systemUptime = `${days} days, ${hours} hours`;
 
-    // Get error count from audit logs (simplified)
+    // Get error count from audit logs with specific action filter
     const [errorCount] = await db
       .select({ count: count() })
-      .from(auditLogs);
+      .from(auditLogs)
+      .where(sql`action LIKE '%error%' OR action LIKE '%fail%'`);
+    
+    // Get failed login attempts count
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const [failedLoginCount] = await db
+      .select({ count: count() })
+      .from(auditLogs)
+      .where(
+        and(
+          sql`action LIKE '%fail%' OR action LIKE '%unauthorized%'`,
+          gte(auditLogs.createdAt, yesterday)
+        )
+      );
 
     const stats = {
-      totalUsers: userStats.count,
-      activeUsers: activeUserStats.count,
-      totalStudents: studentCount.count,
-      totalTeachers: teacherCount.count,
-      totalAdmins: adminCount.count,
-      revenue: Number(revenueData?.total || 0),
-      pendingDues: Number(pendingDues?.total || 0),
+      totalUsers: userStats?.count || 0,
+      activeUsers: activeUserStats?.count || 0,
+      totalStudents: studentCount?.count || 0,
+      totalTeachers: teacherCount?.count || 0,
+      totalAdmins: adminCount?.count || 0,
+      revenue: Number(revenueData?.[0]?.total || 0),
+      pendingDues: Number(pendingDuesData?.[0]?.total || 0),
       systemUptime,
-      errorLogs: errorCount.count,
-      failedLogins: 0 // Will be calculated from sessions or audit logs
+      errorLogs: errorCount?.count || 0,
+      failedLogins: failedLoginCount?.count || 0
     };
 
     res.json(stats);
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
-    res.status(500).json({ message: 'Failed to fetch dashboard statistics' });
+    res.status(500).json({ 
+      message: 'Failed to fetch dashboard statistics',
+      stats: {
+        totalUsers: 0,
+        activeUsers: 0,
+        totalStudents: 0,
+        totalTeachers: 0,
+        totalAdmins: 0,
+        revenue: 0,
+        pendingDues: 0,
+        systemUptime: '0 days, 0 hours',
+        errorLogs: 0,
+        failedLogins: 0
+      }
+    });
   }
 });
 
@@ -291,7 +320,27 @@ router.get('/users', async (req: AuthenticatedRequest, res: Response) => {
 
 router.post('/users', async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // Validate request body
     const userData = insertUserSchema.parse(req.body);
+    
+    // Check if user already exists
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, userData.username));
+    
+    if (existingUser) {
+      return res.status(409).json({ message: 'Username already exists' });
+    }
+    
+    const [existingEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, userData.email));
+    
+    if (existingEmail) {
+      return res.status(409).json({ message: 'Email already exists' });
+    }
     
     // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 10);
@@ -301,13 +350,14 @@ router.post('/users', async (req: AuthenticatedRequest, res: Response) => {
       .values({
         ...userData,
         password: hashedPassword,
+        isApproved: userData.isApproved ?? true, // Super admin created users are auto-approved by default
       })
       .returning();
 
     await logAuditEvent(
       req.user!.id,
-      'create_user',
-      'user',
+      'CREATE',
+      'USER',
       newUser.id.toString(),
       { newValues: { ...userData, password: '[HIDDEN]' } },
       req.ip,
@@ -315,8 +365,11 @@ router.post('/users', async (req: AuthenticatedRequest, res: Response) => {
     );
 
     res.status(201).json({ ...newUser, password: undefined });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating user:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json({ message: 'Invalid user data', errors: error.errors });
+    }
     res.status(500).json({ message: 'Failed to create user' });
   }
 });
@@ -324,6 +377,10 @@ router.post('/users', async (req: AuthenticatedRequest, res: Response) => {
 router.put('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+    
     const updateData = req.body;
 
     // Get old values for audit log
@@ -336,33 +393,45 @@ router.put('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Prepare update data
+    const dataToUpdate: any = { ...updateData };
+    
     // Hash password if provided
-    if (updateData.password) {
-      updateData.password = await bcrypt.hash(updateData.password, 10);
+    if (updateData.password && updateData.password.trim() !== '') {
+      dataToUpdate.password = await bcrypt.hash(updateData.password, 10);
+    } else {
+      // Remove password from update if empty or not provided
+      delete dataToUpdate.password;
     }
+    
+    // Update timestamp
+    dataToUpdate.updatedAt = new Date();
 
     const [updatedUser] = await db
       .update(users)
-      .set(updateData)
+      .set(dataToUpdate)
       .where(eq(users.id, userId))
       .returning();
 
     await logAuditEvent(
       req.user!.id,
-      'update_user',
-      'user',
+      'UPDATE',
+      'USER',
       userId.toString(),
       { 
         oldValues: { ...oldUser, password: '[HIDDEN]' },
-        newValues: { ...updateData, password: updateData.password ? '[HIDDEN]' : undefined }
+        newValues: { ...dataToUpdate, password: dataToUpdate.password ? '[HIDDEN]' : undefined }
       },
       req.ip,
       req.get('user-agent')
     );
 
     res.json({ ...updatedUser, password: undefined });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating user:', error);
+    if (error.name === 'ZodError') {
+      return res.status(400).json({ message: 'Invalid user data', errors: error.errors });
+    }
     res.status(500).json({ message: 'Failed to update user' });
   }
 });
@@ -436,7 +505,7 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
 // System Settings
 router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const settings = await db.select().from(systemSettings);
+    const settings = await db.select().from(systemSettings).orderBy(systemSettings.category, systemSettings.key);
     
     // Don't expose encrypted values
     const safeSettings = settings.map(setting => ({
@@ -465,8 +534,8 @@ router.post('/settings', async (req: AuthenticatedRequest, res: Response) => {
 
     await logAuditEvent(
       req.user!.id,
-      'create_setting',
-      'system_setting',
+      'CREATE',
+      'SYSTEM_SETTING',
       newSetting.id.toString(),
       { newValues: settingData },
       req.ip,
@@ -505,8 +574,8 @@ router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => 
 
     await logAuditEvent(
       req.user!.id,
-      'update_setting',
-      'system_setting',
+      'UPDATE',
+      'SYSTEM_SETTING',
       settingId.toString(),
       { oldValues: oldSetting, newValues: updateData },
       req.ip,
@@ -523,7 +592,7 @@ router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => 
 // Role Management
 router.get('/roles', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const allRoles = await db.select().from(roles);
+    const allRoles = await db.select().from(roles).orderBy(roles.name);
     res.json(allRoles);
   } catch (error) {
     console.error('Error fetching roles:', error);
@@ -542,8 +611,8 @@ router.post('/roles', async (req: AuthenticatedRequest, res: Response) => {
 
     await logAuditEvent(
       req.user!.id,
-      'create_role',
-      'role',
+      'CREATE',
+      'ROLE',
       newRole.id.toString(),
       { newValues: roleData },
       req.ip,
@@ -554,6 +623,30 @@ router.post('/roles', async (req: AuthenticatedRequest, res: Response) => {
   } catch (error) {
     console.error('Error creating role:', error);
     res.status(500).json({ message: 'Failed to create role' });
+  }
+});
+
+router.put('/roles/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const validatedData = insertRoleSchema.partial().parse(req.body);
+    
+    const [role] = await db
+      .update(roles)
+      .set(validatedData)
+      .where(eq(roles.id, parseInt(id)))
+      .returning();
+    
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+    
+    await logAuditEvent(req.user!.id, 'UPDATE', 'ROLE', id.toString(), validatedData, req.ip, req.get('user-agent'));
+    
+    res.json(role);
+  } catch (error) {
+    console.error('Error updating role:', error);
+    res.status(500).json({ message: 'Failed to update role' });
   }
 });
 
@@ -598,107 +691,7 @@ router.get('/security/sessions', async (req: AuthenticatedRequest, res: Response
   }
 });
 
-// System Settings Management
-router.get('/settings', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const settings = await db.select().from(systemSettings).orderBy(systemSettings.category, systemSettings.key);
-    res.json(settings);
-  } catch (error) {
-    console.error('Error fetching system settings:', error);
-    res.status(500).json({ message: 'Failed to fetch system settings' });
-  }
-});
-
-router.post('/settings', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const validatedData = insertSystemSettingSchema.parse(req.body);
-    const [setting] = await db.insert(systemSettings).values(validatedData).returning();
-    
-    await logAuditEvent(req.user!.id, 'CREATE', 'SYSTEM_SETTING', setting.id.toString(), 
-      { category: setting.category, key: setting.key }, req.ip, req.get('user-agent'));
-    
-    res.status(201).json(setting);
-  } catch (error) {
-    console.error('Error creating system setting:', error);
-    res.status(500).json({ message: 'Failed to create system setting' });
-  }
-});
-
-router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const validatedData = insertSystemSettingSchema.partial().parse(req.body);
-    // Remove updatedAt as it's handled automatically
-    
-    const [setting] = await db
-      .update(systemSettings)
-      .set(validatedData)
-      .where(eq(systemSettings.id, parseInt(id)))
-      .returning();
-    
-    if (!setting) {
-      return res.status(404).json({ message: 'System setting not found' });
-    }
-    
-    await logAuditEvent(req.user!.id, 'UPDATE', 'SYSTEM_SETTING', id.toString(), validatedData, req.ip, req.get('user-agent'));
-    
-    res.json(setting);
-  } catch (error) {
-    console.error('Error updating system setting:', error);
-    res.status(500).json({ message: 'Failed to update system setting' });
-  }
-});
-
-// Roles & Permissions Management
-router.get('/roles', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const allRoles = await db.select().from(roles).orderBy(roles.name);
-    res.json(allRoles);
-  } catch (error) {
-    console.error('Error fetching roles:', error);
-    res.status(500).json({ message: 'Failed to fetch roles' });
-  }
-});
-
-router.post('/roles', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const validatedData = insertRoleSchema.parse(req.body);
-    const [role] = await db.insert(roles).values(validatedData).returning();
-    
-    await logAuditEvent(req.user!.id, 'CREATE', 'ROLE', role.id.toString(), 
-      { name: role.name, permissions: role.permissions }, req.ip, req.get('user-agent'));
-    
-    res.status(201).json(role);
-  } catch (error) {
-    console.error('Error creating role:', error);
-    res.status(500).json({ message: 'Failed to create role' });
-  }
-});
-
-router.put('/roles/:id', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const validatedData = insertRoleSchema.partial().parse(req.body);
-    // Remove updatedAt as it's handled automatically
-    
-    const [role] = await db
-      .update(roles)
-      .set(validatedData)
-      .where(eq(roles.id, parseInt(id)))
-      .returning();
-    
-    if (!role) {
-      return res.status(404).json({ message: 'Role not found' });
-    }
-    
-    await logAuditEvent(req.user!.id, 'UPDATE', 'ROLE', id.toString(), validatedData, req.ip, req.get('user-agent'));
-    
-    res.json(role);
-  } catch (error) {
-    console.error('Error updating role:', error);
-    res.status(500).json({ message: 'Failed to update role' });
-  }
-});
+// (Duplicate routes removed - defined earlier in the file)
 
 // Active Sessions Management
 router.get('/sessions', async (req: AuthenticatedRequest, res: Response) => {

@@ -77,37 +77,62 @@ export default function SuperAdminDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Fetch real dashboard data
-  const { data: statsData, isLoading: statsLoading } = useQuery({
+  const { data: statsData, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['/api/super-admin/dashboard/stats'],
     enabled: isAuthenticated && !!token,
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 2,
+    onError: (error) => {
+      console.error('Failed to fetch dashboard stats:', error);
+    }
   });
 
-  const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
+  const { data: activitiesData, isLoading: activitiesLoading, error: activitiesError } = useQuery({
     queryKey: ['/api/super-admin/dashboard/activities'],
     enabled: isAuthenticated && !!token,
     refetchInterval: 60000, // Refresh every minute
+    retry: 2,
+    onError: (error) => {
+      console.error('Failed to fetch activities:', error);
+    }
   });
 
-  const { data: securityData, isLoading: securityLoading } = useQuery({
+  const { data: securityData, isLoading: securityLoading, error: securityError } = useQuery({
     queryKey: ['/api/super-admin/dashboard/security'],
     enabled: isAuthenticated && !!token,
     refetchInterval: 300000, // Refresh every 5 minutes
+    retry: 2,
+    onError: (error) => {
+      console.error('Failed to fetch security data:', error);
+    }
   });
 
-  // Use real data or fallback to defaults
-  const systemStats: SystemStats = (statsData as SystemStats) || {
-    totalUsers: 0,
-    activeUsers: 0,
-    totalStudents: 0,
-    totalTeachers: 0,
-    totalAdmins: 0,
-    systemUptime: '0 days, 0 hours',
-    errorLogs: 0,
-    failedLogins: 0,
-    revenue: 0,
-    pendingDues: 0
-  };
+  // Use real data or fallback to defaults with proper error handling
+  const systemStats: SystemStats = statsError 
+    ? statsError.response?.data?.stats || {
+        totalUsers: 0,
+        activeUsers: 0,
+        totalStudents: 0,
+        totalTeachers: 0,
+        totalAdmins: 0,
+        systemUptime: '0 days, 0 hours',
+        errorLogs: 0,
+        failedLogins: 0,
+        revenue: 0,
+        pendingDues: 0
+      }
+    : (statsData as SystemStats) || {
+        totalUsers: 0,
+        activeUsers: 0,
+        totalStudents: 0,
+        totalTeachers: 0,
+        totalAdmins: 0,
+        systemUptime: '0 days, 0 hours',
+        errorLogs: 0,
+        failedLogins: 0,
+        revenue: 0,
+        pendingDues: 0
+      };
 
   const recentActivities: Activity[] = (activitiesData as any)?.activities || [];
   const securityAlerts: SecurityAlert[] = (securityData as any)?.alerts || [];
@@ -144,7 +169,10 @@ export default function SuperAdminDashboard() {
     // Fetch users from backend
     const { data: usersResponse, isLoading: usersLoading, error: usersError } = useQuery({
       queryKey: ['/api/super-admin/users'],
-      retry: false,
+      enabled: isAuthenticated && !!token,
+      retry: 2,
+      staleTime: 5000,
+      refetchOnWindowFocus: true,
     });
 
     const users = (usersResponse as any)?.users || [];

@@ -23,7 +23,7 @@ export class AdminService {
     const recentLogs = await db
       .select()
       .from(auditLogs)
-      .orderBy(desc(auditLogs.timestamp))
+      .orderBy(desc(auditLogs.createdAt))
       .limit(10);
 
     const systemUptime = process.uptime();
@@ -65,11 +65,11 @@ export class AdminService {
     }
 
     if (filters.startDate) {
-      whereConditions.push(gte(auditLogs.timestamp, new Date(filters.startDate)));
+      whereConditions.push(gte(auditLogs.createdAt, new Date(filters.startDate)));
     }
 
     if (filters.endDate) {
-      whereConditions.push(lte(auditLogs.timestamp, new Date(filters.endDate)));
+      whereConditions.push(lte(auditLogs.createdAt, new Date(filters.endDate)));
     }
 
     const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
@@ -78,7 +78,7 @@ export class AdminService {
       .select()
       .from(auditLogs)
       .where(whereClause)
-      .orderBy(desc(auditLogs.timestamp))
+      .orderBy(desc(auditLogs.createdAt))
       .limit(limit)
       .offset(offset);
 
