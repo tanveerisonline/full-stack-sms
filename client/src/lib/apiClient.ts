@@ -8,10 +8,15 @@ export class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
+    // Get authentication token from localStorage
+    const token = localStorage.getItem('token');
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        // Include authentication token if available
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers,
       },
       ...options,

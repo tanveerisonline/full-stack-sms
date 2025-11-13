@@ -24,11 +24,16 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  // SSL configuration for production (properly configured)
+  ssl: process.env.DB_SSL === 'true' ? {
+    rejectUnauthorized: true,
+    ca: process.env.DB_SSL_CA
+  } : undefined,
   timezone: '+00:00', // Use UTC
   supportBigNumbers: true,
   bigNumberStrings: false,
-  multipleStatements: true,
+  // Disabled multipleStatements for security (prevents SQL injection)
+  multipleStatements: false,
   dateStrings: true,
   charset: 'utf8mb4_unicode_ci',
   enableKeepAlive: true,

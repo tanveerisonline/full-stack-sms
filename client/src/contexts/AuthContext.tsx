@@ -35,7 +35,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (storedUser && storedToken) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log('AuthContext: Loading stored user:', parsedUser);
         setUser(parsedUser);
       } catch (error) {
         localStorage.removeItem('user');
@@ -47,36 +46,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
       // Check if user is already stored in localStorage (called after API login)
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
-        console.log('AuthContext login: Setting user from localStorage:', parsedUser);
         setUser(parsedUser);
         setIsLoading(false);
         return true;
       }
-      
-      // Fallback demo credentials for development
-      if (email === 'admin@school.edu' && password === 'password') {
-        const adminUser: User = {
-          id: '1',
-          username: 'admin',
-          email: 'admin@school.edu',
-          role: 'admin',
-          firstName: 'John',
-          lastName: 'Smith',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100'
-        };
-        
-        setUser(adminUser);
-        localStorage.setItem('user', JSON.stringify(adminUser));
-        setIsLoading(false);
-        return true;
-      }
-      
+
       setIsLoading(false);
       return false;
     } catch (error) {
