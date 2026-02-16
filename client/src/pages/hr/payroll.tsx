@@ -104,12 +104,20 @@ export default function PayrollManagement() {
     queryKey: ['/api/payroll/stats'],
   });
 
+  // Type assertions for better TypeScript support
+  const payrollData = payrollRecords as PayrollRecord[];
+  const statsData = stats as any;
+  const teachersData = teachers as any[];
+
   // Create payroll mutation
   const createPayrollMutation = useMutation({
     mutationFn: async (payrollData: any) => {
       return apiRequest('/api/payroll', {
         method: 'POST',
-        body: payrollData,
+        body: JSON.stringify(payrollData),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
     },
     onSuccess: () => {
@@ -136,7 +144,10 @@ export default function PayrollManagement() {
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       return apiRequest(`/api/payroll/${id}/status`, {
         method: 'PUT',
-        body: { status },
+        body: JSON.stringify({ status }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
     },
     onSuccess: () => {
@@ -194,7 +205,7 @@ export default function PayrollManagement() {
   };
 
   // Filter records
-  const filteredRecords = payrollRecords.filter((record: PayrollRecord) => {
+  const filteredRecords = payrollData.filter((record: PayrollRecord) => {
     const matchesSearch = 
       record.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
@@ -247,7 +258,7 @@ export default function PayrollManagement() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Monthly</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-total-monthly">
-                    ${stats?.totalMonthly?.toLocaleString() || 0}
+                    ${statsData?.totalMonthly?.toLocaleString() || 0}
                   </p>
                 </div>
               </div>
@@ -261,7 +272,7 @@ export default function PayrollManagement() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Paid This Month</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-paid-count">
-                    {stats?.paidThisMonth || 0}
+                    {statsData?.paidThisMonth || 0}
                   </p>
                 </div>
               </div>
@@ -275,7 +286,7 @@ export default function PayrollManagement() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Pending</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-pending-count">
-                    {stats?.pending || 0}
+                    {statsData?.pending || 0}
                   </p>
                 </div>
               </div>
@@ -289,7 +300,7 @@ export default function PayrollManagement() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Average Salary</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-avg-salary">
-                    ${stats?.averageSalary?.toLocaleString() || 0}
+                    ${statsData?.averageSalary?.toLocaleString() || 0}
                   </p>
                 </div>
               </div>
@@ -494,7 +505,7 @@ export default function PayrollManagement() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {teachers.map((teacher: any) => (
+                            {teachersData.map((teacher: any) => (
                               <SelectItem key={teacher.id} value={teacher.id.toString()}>
                                 {teacher.firstName} {teacher.lastName} - {teacher.employeeId}
                               </SelectItem>

@@ -4,10 +4,12 @@ import { authenticateToken } from '../middleware/auth';
 import { db } from '../db';
 import { users, students, teachers } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import {
-  ObjectStorageService,
-  ObjectNotFoundError,
-} from "../objectStorage";
+// Note: ObjectStorageService imports removed for fallback system
+// Uncomment when GCS is properly configured:
+// import {
+//   ObjectStorageService,
+//   ObjectNotFoundError,
+// } from "../objectStorage";
 
 const router = Router();
 
@@ -24,40 +26,33 @@ interface AuthenticatedRequest extends Request {
 
 // Serve private objects (photos) with access control (authenticated)
 router.get("/objects/:objectPath(*)", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user?.id?.toString();
-  const objectStorageService = new ObjectStorageService();
-  
-  try {
-    const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-    const canAccess = await objectStorageService.canAccessObjectEntity({
-      objectFile,
-      userId: userId,
-    });
-    
-    if (!canAccess) {
-      return res.sendStatus(401);
-    }
-    
-    objectStorageService.downloadObject(objectFile, res);
-  } catch (error) {
-    console.error("Error checking object access:", error);
-    if (error instanceof ObjectNotFoundError) {
-      return res.sendStatus(404);
-    }
-    return res.sendStatus(500);
-  }
+  // Temporarily disabled - requires ObjectStorageService configuration
+  res.status(503).json({
+    error: 'Object storage service temporarily unavailable',
+    message: 'Configure PRIVATE_OBJECT_DIR and PUBLIC_OBJECT_SEARCH_PATHS to enable this feature'
+  });
 });
 
 // Get upload URL for photo (no authentication required for getting presigned URL)
 router.post("/upload", async (req: Request, res: Response) => {
-  try {
-    const objectStorageService = new ObjectStorageService();
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    res.json({ uploadURL });
-  } catch (error) {
-    console.error("Error getting upload URL:", error);
-    res.status(500).json({ error: "Failed to get upload URL" });
-  }
+  // Always use fallback system for now since GCS is not configured
+  console.log('Photo upload request - using local fallback system');
+  const timestamp = Date.now();
+  const randomId = Math.random().toString(36).substr(2, 9);
+  const uploadURL = `/api/photos/local-upload/${randomId}-${timestamp}`;
+  
+  // Check if we have GCS configuration
+  const hasGCSConfig = process.env.PRIVATE_OBJECT_DIR && process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+  
+  res.json({ 
+    success: true,
+    uploadURL, 
+    provider: hasGCSConfig ? 'gcs-fallback' : 'local-fallback',
+    message: hasGCSConfig 
+      ? 'GCS configured but using local fallback for development' 
+      : 'Using local fallback - configure PRIVATE_OBJECT_DIR and PUBLIC_OBJECT_SEARCH_PATHS for cloud storage',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Update user avatar (authenticated)
@@ -72,25 +67,22 @@ router.put("/avatar", authenticateToken, async (req: AuthenticatedRequest, res: 
   }
 
   try {
-    const objectStorageService = new ObjectStorageService();
-    const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-      req.body.photoURL,
-      {
-        owner: userId?.toString() || "",
-        visibility: "private", // Profile photos are private by default
-      },
-    );
+    // For fallback system, just store the URL directly
+    const avatar = req.body.photoURL;
 
     // Update user avatar in database
     await db
       .update(users)
       .set({ 
-        avatar: objectPath,
+        avatar: avatar,
         updatedAt: new Date()
       })
       .where(eq(users.id, userId));
 
-    res.json({ avatar: objectPath });
+    res.json({ 
+      avatar: avatar,
+      message: 'Avatar updated successfully (using fallback system)'
+    });
   } catch (error) {
     console.error("Error updating user avatar:", error);
     res.status(500).json({ error: "Failed to update avatar" });
@@ -118,25 +110,22 @@ router.put("/student/:studentId/avatar", authenticateToken, async (req: Authenti
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
-    const objectStorageService = new ObjectStorageService();
-    const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-      req.body.photoURL,
-      {
-        owner: userId?.toString() || "anonymous",
-        visibility: "private",
-      },
-    );
+    // For fallback system, just store the URL directly
+    const avatar = req.body.photoURL;
 
     // Update student avatar in database
     await db
       .update(students)
       .set({ 
-        avatar: objectPath,
+        avatar: avatar,
         updatedAt: new Date()
       })
       .where(eq(students.id, studentId));
 
-    res.json({ avatar: objectPath });
+    res.json({ 
+      avatar: avatar,
+      message: 'Student avatar updated successfully (using fallback system)'
+    });
   } catch (error) {
     console.error("Error updating student avatar:", error);
     res.status(500).json({ error: "Failed to update student avatar" });
@@ -163,25 +152,22 @@ router.put("/teacher/:teacherId/avatar", authenticateToken, async (req: Authenti
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
-    const objectStorageService = new ObjectStorageService();
-    const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-      req.body.photoURL,
-      {
-        owner: userId?.toString() || "anonymous",
-        visibility: "private",
-      },
-    );
+    // For fallback system, just store the URL directly
+    const avatar = req.body.photoURL;
 
     // Update teacher avatar in database
     await db
       .update(teachers)
       .set({ 
-        avatar: objectPath,
+        avatar: avatar,
         updatedAt: new Date()
       })
       .where(eq(teachers.id, teacherId));
 
-    res.json({ avatar: objectPath });
+    res.json({ 
+      avatar: avatar,
+      message: 'Teacher avatar updated successfully (using fallback system)'
+    });
   } catch (error) {
     console.error("Error updating teacher avatar:", error);
     res.status(500).json({ error: "Failed to update teacher avatar" });

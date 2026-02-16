@@ -10,11 +10,13 @@ function useCourses() {
     queryKey: ['/api/classes'],
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error) => {
-      console.error('Failed to fetch courses:', error);
-    }
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
   });
+  
+  // Handle errors in a useEffect or component level
+  if (error) {
+    console.error('Failed to fetch courses:', error);
+  }
 
   // Mutation for creating a course
   const createMutation = useMutation({

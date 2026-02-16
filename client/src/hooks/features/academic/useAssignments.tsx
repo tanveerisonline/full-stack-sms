@@ -21,7 +21,10 @@ export function useCreateAssignment() {
   
   return useMutation({
     mutationFn: async (data: InsertAssignment) => {
-      return apiRequest('POST', '/api/assignments', data);
+      return apiRequest('/api/assignments', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
@@ -34,7 +37,10 @@ export function useUpdateAssignment() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<InsertAssignment> }) => {
-      return apiRequest('PUT', `/api/assignments/${id}`, data);
+      return apiRequest(`/api/assignments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
@@ -47,7 +53,9 @@ export function useDeleteAssignment() {
   
   return useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/assignments/${id}`);
+      return apiRequest(`/api/assignments/${id}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
@@ -64,9 +72,12 @@ function useSubmitAssignment() {
       studentId: number; 
       submission: string; 
     }) => {
-      return apiRequest('POST', `/api/assignments/${assignmentId}/submit`, {
-        studentId,
-        submission,
+      return apiRequest(`/api/assignments/${assignmentId}/submit`, {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId,
+          submission,
+        })
       });
     },
     onSuccess: () => {
@@ -85,10 +96,13 @@ function useGradeAssignment() {
       grade: number; 
       feedback?: string; 
     }) => {
-      return apiRequest('POST', `/api/assignments/${assignmentId}/grade`, {
-        studentId,
-        grade,
-        feedback,
+      return apiRequest(`/api/assignments/${assignmentId}/grade`, {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId,
+          grade,
+          feedback,
+        })
       });
     },
     onSuccess: () => {

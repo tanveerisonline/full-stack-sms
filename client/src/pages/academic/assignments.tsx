@@ -76,9 +76,10 @@ export default function Assignments() {
     }
   };
 
-  const isOverdue = (dueDate: string, status: string) => {
+  const isOverdue = (dueDate: string | Date, status: string) => {
     if (status === 'closed') return false;
-    return new Date(dueDate) < new Date();
+    const dueDateObj = dueDate instanceof Date ? dueDate : new Date(dueDate);
+    return dueDateObj < new Date();
   };
 
   const handleCreateAssignment = () => {

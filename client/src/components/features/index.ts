@@ -9,5 +9,6 @@ export * from './admin';
 export * from './communication';
 
 // Re-export common UI components for convenience
-export * from '../ui';
-export * from '../Common';
+// Note: Commented out due to naming conflicts
+// export * from '../ui';
+// export * from '../Common';

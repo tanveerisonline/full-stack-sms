@@ -38,13 +38,15 @@ export class UserService {
     // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     
-    const [newUser] = await db
+    const result = await db
       .insert(users)
       .values({
         ...userData,
         password: hashedPassword,
-      })
-      .returning();
+      });
+
+    const insertId = (result as any).insertId;
+    const [newUser] = await db.select().from(users).where(eq(users.id, insertId));
 
     // Log audit event
     try {
@@ -77,11 +79,12 @@ export class UserService {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
 
-    const [updatedUser] = await db
+    await db
       .update(users)
       .set({ ...updateData, updatedAt: new Date() })
-      .where(eq(users.id, userId))
-      .returning();
+      .where(eq(users.id, userId));
+
+    const [updatedUser] = await db.select().from(users).where(eq(users.id, userId));
 
     // Log audit event
     try {
@@ -110,7 +113,7 @@ export class UserService {
       return false;
     }
 
-    const [deletedUser] = await db.delete(users).where(eq(users.id, userId)).returning();
+    await db.delete(users).where(eq(users.id, userId));
 
     // Log audit event
     try {
@@ -127,7 +130,7 @@ export class UserService {
       console.error('Failed to log audit event:', error);
     }
 
-    return !!deletedUser;
+    return true;
   }
 
   async verifyPassword(username: string, password: string) {

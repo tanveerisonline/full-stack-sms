@@ -46,12 +46,15 @@ export default function TeacherProfiles() {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Fetch teachers
-  const { data: teachers = [], isLoading } = useQuery({
+  const { data: teachers = [], isLoading: isLoadingTeachers } = useQuery({
     queryKey: ['/api/teachers'],
   });
 
+  // Type assertion for better TypeScript support
+  const teachersData = teachers as Teacher[];
+
   // Filter teachers based on search
-  const filteredTeachers = teachers.filter((teacher: Teacher) => {
+  const filteredTeachers = teachersData.filter((teacher: Teacher) => {
     const searchLower = searchTerm.toLowerCase();
     return (
       teacher.firstName.toLowerCase().includes(searchLower) ||
@@ -95,7 +98,7 @@ export default function TeacherProfiles() {
         </Card>
 
         {/* Teachers Grid */}
-        {isLoading ? (
+        {isLoadingTeachers ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="text-gray-600 mt-4">Loading teacher profiles...</p>

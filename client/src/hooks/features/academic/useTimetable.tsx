@@ -21,7 +21,10 @@ export function useCreateTimetableEntry() {
   
   return useMutation({
     mutationFn: async (data: InsertTimetable) => {
-      return apiRequest('POST', '/api/timetable', data);
+      return apiRequest('/api/timetable', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/timetable'] });
@@ -34,7 +37,10 @@ export function useUpdateTimetableEntry() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<InsertTimetable> }) => {
-      return apiRequest('PUT', `/api/timetable/${id}`, data);
+      return apiRequest(`/api/timetable/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/timetable'] });
@@ -47,7 +53,9 @@ export function useDeleteTimetableEntry() {
   
   return useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/timetable/${id}`);
+      return apiRequest(`/api/timetable/${id}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/timetable'] });

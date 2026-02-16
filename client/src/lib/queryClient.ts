@@ -42,6 +42,14 @@ export async function apiRequest(
   return res;
 }
 
+export async function apiRequestJson<T = any>(
+  url: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const response = await apiRequest(url, options);
+  return response.json();
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;

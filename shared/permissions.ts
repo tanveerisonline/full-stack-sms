@@ -310,7 +310,7 @@ export const getAllPermissions = (): Permission[] => {
 };
 
 export const getPermissionsByCategory = (category: keyof typeof PERMISSION_CATEGORIES): Permission[] => {
-  return PERMISSION_CATEGORIES[category] || [];
+  return [...(PERMISSION_CATEGORIES[category] || [])];
 };
 
 export const hasPermission = (userPermissions: string[], requiredPermission: Permission): boolean => {

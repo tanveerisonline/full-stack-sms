@@ -5,29 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
 import { StudentTable, StudentForm, StudentDetailModal } from '@/components/features/student';
-
-type Student = {
-  id: number;
-  rollNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string | null;
-  phone: string | null;
-  dateOfBirth: string | null;
-  grade: string;
-  section: string | null;
-  admissionDate: string;
-  parentName: string | null;
-  parentContact: string | null;
-  parentEmail: string | null;
-  address: string | null;
-  status: string;
-  avatar: string | null;
-  bloodGroup: string | null;
-  medicalInfo: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import type { Student } from '@/types';
 
 export default function StudentRegistration() {
   const { toast } = useToast();
@@ -40,6 +18,10 @@ export default function StudentRegistration() {
   const { data: students = [] as Student[], isLoading: isLoadingStudents } = useQuery({
     queryKey: ['/api/students'],
   });
+
+  // Type assertion for compatibility with components
+  const studentsData = students as Student[];
+  const filteredStudents = studentsData;
 
   // Add student mutation
   const addStudentMutation = useMutation({
@@ -165,7 +147,7 @@ export default function StudentRegistration() {
 
       {/* Students Table */}
       <StudentTable
-        students={students}
+        students={filteredStudents}
         onEdit={handleEditStudent}
         onDelete={handleDeleteStudent}
         onView={handleViewStudent}

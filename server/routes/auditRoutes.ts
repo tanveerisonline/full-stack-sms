@@ -358,7 +358,7 @@ router.delete('/cleanup', async (req: AuthenticatedRequest, res: Response) => {
 
     res.json({
       message: `Deleted audit logs older than ${days} days`,
-      deletedCount: result.rowCount || 0,
+      deletedCount: (result as any).affectedRows || 0,
       cutoffDate: cutoffDate.toISOString()
     });
   } catch (error) {

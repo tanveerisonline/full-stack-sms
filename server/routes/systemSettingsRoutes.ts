@@ -98,7 +98,7 @@ router.put('/:category', async (req: AuthenticatedRequest, res: Response) => {
 
       if (existingSetting) {
         // Update existing setting
-        const [updated] = await db
+        await db
           .update(systemSettings)
           .set({
             value,
@@ -107,13 +107,18 @@ router.put('/:category', async (req: AuthenticatedRequest, res: Response) => {
             updatedBy: userId,
             updatedAt: new Date(),
           })
+          .where(eq(systemSettings.id, existingSetting.id));
+
+        const [updated] = await db
+          .select()
+          .from(systemSettings)
           .where(eq(systemSettings.id, existingSetting.id))
-          .returning();
+          .limit(1);
         
         updatedSettings.push(updated);
       } else {
         // Create new setting
-        const [created] = await db
+        await db
           .insert(systemSettings)
           .values({
             category,
@@ -122,8 +127,16 @@ router.put('/:category', async (req: AuthenticatedRequest, res: Response) => {
             description,
             isEncrypted,
             updatedBy: userId,
-          })
-          .returning();
+          });
+
+        const [created] = await db
+          .select()
+          .from(systemSettings)
+          .where(and(
+            eq(systemSettings.category, category),
+            eq(systemSettings.key, key)
+          ))
+          .limit(1);
         
         updatedSettings.push(created);
       }
@@ -160,28 +173,41 @@ router.put('/:category/:key', async (req: AuthenticatedRequest, res: Response) =
 
     if (existingSetting) {
       // Update existing setting
-      const [updated] = await db
+      await db
         .update(systemSettings)
         .set({
           ...updateData,
           updatedBy: userId,
           updatedAt: new Date(),
         })
+        .where(eq(systemSettings.id, existingSetting.id));
+
+      const [updated] = await db
+        .select()
+        .from(systemSettings)
         .where(eq(systemSettings.id, existingSetting.id))
-        .returning();
+        .limit(1);
       
       result = updated;
     } else {
       // Create new setting
-      const [created] = await db
+      await db
         .insert(systemSettings)
         .values({
           category,
           key,
           ...updateData,
           updatedBy: userId,
-        })
-        .returning();
+        });
+
+      const [created] = await db
+        .select()
+        .from(systemSettings)
+        .where(and(
+          eq(systemSettings.category, category),
+          eq(systemSettings.key, key)
+        ))
+        .limit(1);
       
       result = created;
     }
@@ -202,12 +228,24 @@ router.delete('/:category/:key', async (req: AuthenticatedRequest, res: Response
     const { category, key } = req.params;
 
     const [deletedSetting] = await db
-      .delete(systemSettings)
+      .select()
+      .from(systemSettings)
       .where(and(
         eq(systemSettings.category, category),
         eq(systemSettings.key, key)
       ))
-      .returning();
+      .limit(1);
+
+    if (!deletedSetting) {
+      return res.status(404).json({ message: 'Setting not found' });
+    }
+
+    await db
+      .delete(systemSettings)
+      .where(and(
+        eq(systemSettings.category, category),
+        eq(systemSettings.key, key)
+      ));
 
     if (!deletedSetting) {
       return res.status(404).json({ message: 'Setting not found' });
@@ -418,13 +456,21 @@ router.post('/initialize', async (req: AuthenticatedRequest, res: Response) => {
         ));
 
       if (!existing) {
-        const [inserted] = await db
+        await db
           .insert(systemSettings)
           .values({
             ...setting,
             updatedBy: userId,
-          })
-          .returning();
+          });
+
+        const [inserted] = await db
+          .select()
+          .from(systemSettings)
+          .where(and(
+            eq(systemSettings.category, setting.category),
+            eq(systemSettings.key, setting.key)
+          ))
+          .limit(1);
         insertedSettings.push(inserted);
       }
     }

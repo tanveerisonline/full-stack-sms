@@ -1,48 +1,61 @@
 export interface User {
-  id: string;
+  id: string | number;
   username: string;
   email: string;
-  role: 'admin' | 'teacher' | 'student' | 'parent';
+  role: 'admin' | 'teacher' | 'student' | 'parent' | 'super_admin';
   firstName: string;
   lastName: string;
   avatar?: string;
+  phone?: string;
 }
 
 export interface Student {
-  id: string;
+  id: string | number;
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
+  email?: string | null;
+  phone?: string | null;
   grade: string;
-  dateOfBirth: string;
-  address: string;
-  parentName: string;
-  parentContact: string;
+  dateOfBirth?: string | Date | null;
+  address?: string | null;
+  parentName: string | null;
+  parentContact: string | null;
   rollNumber: string;
-  status: 'active' | 'inactive' | 'pending';
-  avatar?: string;
-  createdAt: string;
-  updatedAt: string;
+  status: string;
+  avatar?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  // Additional fields that might be present
+  section?: string | null;
+  admissionDate?: string | Date | null;
+  parentEmail?: string | null;
+  bloodGroup?: string | null;
+  medicalInfo?: string | null;
 }
 
 export interface Teacher {
-  id: string;
+  id: string | number;
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  dateOfBirth: string;
-  address: string;
-  qualification: string;
-  experience: number;
-  subjects: string[];
-  salary: number;
-  joinDate: string;
-  status: 'active' | 'inactive';
-  avatar?: string;
-  createdAt: string;
-  updatedAt: string;
+  phone: string | null;
+  dateOfBirth: string | Date | null;
+  address: string | null;
+  qualification?: string | null;
+  experience?: number | null;
+  subject?: string | null; // singular subject from database
+  subjects?: string[]; // optional array for backward compatibility 
+  salary?: string | number | null;
+  hireDate?: string | Date | null;
+  joinDate?: string; // for backward compatibility
+  status: string;
+  role?: string;
+  avatar?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  // Additional database fields
+  employeeId?: string | null;
+  department?: string | null;
 }
 
 export interface Course {
@@ -110,6 +123,7 @@ export interface Book {
   category: string;
   quantity: number;
   available: number;
+  availableCopies?: number;
   status: 'available' | 'maintenance' | 'lost';
   createdAt: string;
   updatedAt: string;
@@ -157,6 +171,11 @@ export interface Grade {
   gradedBy: string;
   createdAt: string;
   updatedAt: string;
+  // Additional fields that might be present
+  gradeType?: string;
+  type?: string;
+  score?: number;
+  total?: number;
 }
 
 export interface DashboardStats {

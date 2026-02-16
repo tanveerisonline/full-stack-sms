@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequestJson, apiRequest } from '@/lib/queryClient';
 import type { Question, QuestionOption } from "@shared/schema";
 
 interface QuestionManagerProps {
@@ -52,7 +52,7 @@ export function QuestionManager({ examId }: QuestionManagerProps) {
   // Get questions for the exam
   const { data: questions, isLoading } = useQuery<QuestionWithOptions[]>({
     queryKey: ['/api/exams', examId, 'questions'],
-    queryFn: () => apiRequest(`/api/exams/${examId}/questions`),
+    queryFn: () => apiRequestJson(`/api/exams/${examId}/questions`),
   });
 
   // Create question mutation

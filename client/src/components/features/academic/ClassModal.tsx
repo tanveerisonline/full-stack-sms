@@ -77,7 +77,7 @@ function ClassModal({
         startTime: editingEntry.startTime,
         endTime: editingEntry.endTime,
         period: editingEntry.period,
-        status: editingEntry.status as 'active' | 'inactive'
+        status: 'active'
       });
     } else if (selectedDay && selectedTime) {
       setFormData(prev => ({

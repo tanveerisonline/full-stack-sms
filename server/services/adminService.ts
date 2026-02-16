@@ -35,7 +35,7 @@ export class AdminService {
       totalTeachers: teachersCount.count,
       activeSessions: activeSessionsCount.count,
       systemUptime: Math.floor(systemUptime / 3600) + ' hours',
-      memoryUsage: Math.round(memoryUsage.used / 1024 / 1024) + ' MB',
+      memoryUsage: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
       errorLogs: recentLogs.filter(log => log.action.includes('error')).length,
       recentActivity: recentLogs,
     };
@@ -99,7 +99,7 @@ export class AdminService {
     let query = db.select().from(systemSettings);
 
     if (category) {
-      query = query.where(eq(systemSettings.category, category));
+      query = query.where(eq(systemSettings.category, category)) as typeof query;
     }
 
     return await query.orderBy(systemSettings.category, systemSettings.key);
@@ -113,15 +113,16 @@ export class AdminService {
       return null;
     }
 
-    const [updatedSetting] = await db
+    await db
       .update(systemSettings)
       .set({ 
         value, 
         updatedBy, 
         updatedAt: new Date() 
       })
-      .where(eq(systemSettings.id, settingId))
-      .returning();
+      .where(eq(systemSettings.id, settingId));
+
+    const [updatedSetting] = await db.select().from(systemSettings).where(eq(systemSettings.id, settingId));
 
     // Log audit event
     try {

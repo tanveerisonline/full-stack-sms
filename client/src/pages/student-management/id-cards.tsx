@@ -36,7 +36,7 @@ export default function IdCards() {
   };
 
   const selectAllStudents = () => {
-    setSelectedStudents(filteredStudents.map(s => s.id));
+    setSelectedStudents(filteredStudents.map(s => String(s.id)));
   };
 
   const clearSelection = () => {
@@ -50,7 +50,7 @@ export default function IdCards() {
     }
 
     try {
-      const selectedStudentData = students.filter(s => selectedStudents.includes(s.id));
+      const selectedStudentData = students.filter(s => selectedStudents.includes(String(s.id)));
       const cardData = selectedStudentData.map(student => ({
         'Student ID': student.rollNumber,
         'Full Name': `${student.firstName} ${student.lastName}`,
@@ -77,7 +77,7 @@ export default function IdCards() {
     }
 
     try {
-      const selectedStudentData = students.filter(s => selectedStudents.includes(s.id));
+      const selectedStudentData = students.filter(s => selectedStudents.includes(String(s.id)));
       
       // Create a temporary div with all ID cards for printing
       const printDiv = document.createElement('div');
@@ -255,11 +255,11 @@ export default function IdCards() {
             <Card 
               key={student.id} 
               className={`cursor-pointer transition-all hover:shadow-md ${
-                selectedStudents.includes(student.id) 
+                selectedStudents.includes(String(student.id))
                   ? 'ring-2 ring-primary-500 bg-primary-50' 
                   : ''
               }`}
-              onClick={() => toggleStudentSelection(student.id)}
+              onClick={() => toggleStudentSelection(String(student.id))}
               data-testid={`card-student-${student.id}`}
             >
               <CardContent className="p-4">
@@ -274,7 +274,7 @@ export default function IdCards() {
                   
                   <div className="flex items-center space-x-3">
                     <Avatar className="w-16 h-16 border-2 border-white">
-                      <AvatarImage src={student.avatar} alt={`${student.firstName} ${student.lastName}`} />
+                      <AvatarImage src={student.avatar || undefined} alt={`${student.firstName} ${student.lastName}`} />
                       <AvatarFallback className="bg-white text-primary-600 font-semibold">
                         {student.firstName[0]}{student.lastName[0]}
                       </AvatarFallback>
@@ -315,7 +315,7 @@ export default function IdCards() {
                 </div>
 
                 {/* Selection Indicator */}
-                {selectedStudents.includes(student.id) && (
+                {selectedStudents.includes(String(student.id)) && (
                   <div className="mt-3 flex items-center text-primary-600 text-sm font-medium">
                     <i className="fas fa-check-circle mr-2"></i>
                     Selected for ID card generation

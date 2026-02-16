@@ -178,7 +178,7 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await db.insert(users).values(insertUser);
-    const insertId = result.insertId || result[0]?.insertId;
+    const insertId = (result as any).insertId;
     if (!insertId) throw new Error('Failed to get insert ID');
     const [user] = await db.select().from(users).where(eq(users.id, Number(insertId)));
     if (!user) throw new Error('Failed to retrieve created user');
@@ -196,8 +196,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createStudent(student: InsertStudent): Promise<Student> {
-    const result = await db.insert(students).values(student);
-    const insertId = result.insertId || result[0]?.insertId;
+    // Generate required fields
+    const rollNumber = `STU${Date.now().toString().slice(-6)}`;
+    const studentData = {
+      ...student,
+      rollNumber,
+      admissionDate: new Date(),
+    };
+    const result = await db.insert(students).values(studentData);
+    const insertId = (result as any).insertId;
     if (!insertId) throw new Error('Failed to get insert ID');
     const [newStudent] = await db.select().from(students).where(eq(students.id, Number(insertId)));
     if (!newStudent) throw new Error('Failed to retrieve created student');
@@ -229,7 +236,7 @@ export class DatabaseStorage implements IStorage {
 
   async createTeacher(teacher: InsertTeacher): Promise<Teacher> {
     const result = await db.insert(teachers).values(teacher);
-    const insertId = result.insertId || result[0]?.insertId;
+    const insertId = (result as any).insertId;
     if (!insertId) throw new Error('Failed to get insert ID');
     const [newTeacher] = await db.select().from(teachers).where(eq(teachers.id, Number(insertId)));
     if (!newTeacher) throw new Error('Failed to retrieve created teacher');
@@ -303,15 +310,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAssignment(assignment: InsertAssignment): Promise<Assignment> {
-    const [newAssignment] = await db.insert(assignments).values(assignment).returning();
+    const result = await db.insert(assignments).values(assignment);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newAssignment] = await db.select().from(assignments).where(eq(assignments.id, Number(insertId)));
+    if (!newAssignment) throw new Error('Failed to retrieve created assignment');
     return newAssignment;
   }
 
   async updateAssignment(id: number, assignment: Partial<InsertAssignment>): Promise<Assignment> {
-    const [updatedAssignment] = await db.update(assignments)
+    await db.update(assignments)
       .set({ ...assignment, updatedAt: new Date() })
-      .where(eq(assignments.id, id))
-      .returning();
+      .where(eq(assignments.id, id));
+    const [updatedAssignment] = await db.select().from(assignments).where(eq(assignments.id, id));
+    if (!updatedAssignment) throw new Error('Assignment not found');
     return updatedAssignment;
   }
 
@@ -329,15 +341,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createGrade(grade: InsertGrade): Promise<Grade> {
-    const [newGrade] = await db.insert(grades).values(grade).returning();
+    const result = await db.insert(grades).values(grade);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newGrade] = await db.select().from(grades).where(eq(grades.id, Number(insertId)));
+    if (!newGrade) throw new Error('Failed to retrieve created grade');
     return newGrade;
   }
 
   async updateGrade(id: number, grade: Partial<InsertGrade>): Promise<Grade> {
-    const [updatedGrade] = await db.update(grades)
+    await db.update(grades)
       .set({ ...grade, updatedAt: new Date() })
-      .where(eq(grades.id, id))
-      .returning();
+      .where(eq(grades.id, id));
+    const [updatedGrade] = await db.select().from(grades).where(eq(grades.id, id));
+    if (!updatedGrade) throw new Error('Grade not found');
     return updatedGrade;
   }
 
@@ -360,22 +377,27 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(attendance.grade, grade),
           eq(attendance.section, section),
-          eq(attendance.date, date)
+          eq(attendance.date, new Date(date))
         )
       )
       .orderBy(desc(attendance.id));
   }
 
   async createAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
-    const [newAttendance] = await db.insert(attendance).values(attendanceData).returning();
+    const result = await db.insert(attendance).values(attendanceData);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newAttendance] = await db.select().from(attendance).where(eq(attendance.id, Number(insertId)));
+    if (!newAttendance) throw new Error('Failed to retrieve created attendance');
     return newAttendance;
   }
 
   async updateAttendance(id: number, attendanceData: Partial<InsertAttendance>): Promise<Attendance> {
-    const [updatedAttendance] = await db.update(attendance)
+    await db.update(attendance)
       .set({ ...attendanceData, updatedAt: new Date() })
-      .where(eq(attendance.id, id))
-      .returning();
+      .where(eq(attendance.id, id));
+    const [updatedAttendance] = await db.select().from(attendance).where(eq(attendance.id, id));
+    if (!updatedAttendance) throw new Error('Attendance not found');
     return updatedAttendance;
   }
 
@@ -394,15 +416,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBook(book: InsertBook): Promise<Book> {
-    const [newBook] = await db.insert(books).values(book).returning();
+    const result = await db.insert(books).values(book);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newBook] = await db.select().from(books).where(eq(books.id, Number(insertId)));
+    if (!newBook) throw new Error('Failed to retrieve created book');
     return newBook;
   }
 
   async updateBook(id: number, book: Partial<InsertBook>): Promise<Book> {
-    const [updatedBook] = await db.update(books)
+    await db.update(books)
       .set({ ...book, updatedAt: new Date() })
-      .where(eq(books.id, id))
-      .returning();
+      .where(eq(books.id, id));
+    const [updatedBook] = await db.select().from(books).where(eq(books.id, id));
+    if (!updatedBook) throw new Error('Book not found');
     return updatedBook;
   }
 
@@ -421,15 +448,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBookIssue(bookIssue: InsertBookIssue): Promise<BookIssue> {
-    const [newBookIssue] = await db.insert(bookIssues).values(bookIssue).returning();
+    const result = await db.insert(bookIssues).values(bookIssue);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newBookIssue] = await db.select().from(bookIssues).where(eq(bookIssues.id, Number(insertId)));
+    if (!newBookIssue) throw new Error('Failed to retrieve created book issue');
     return newBookIssue;
   }
 
   async updateBookIssue(id: number, bookIssue: Partial<InsertBookIssue>): Promise<BookIssue> {
-    const [updatedBookIssue] = await db.update(bookIssues)
+    await db.update(bookIssues)
       .set({ ...bookIssue, updatedAt: new Date() })
-      .where(eq(bookIssues.id, id))
-      .returning();
+      .where(eq(bookIssues.id, id));
+    const [updatedBookIssue] = await db.select().from(bookIssues).where(eq(bookIssues.id, id));
+    if (!updatedBookIssue) throw new Error('Book issue not found');
     return updatedBookIssue;
   }
 
@@ -448,15 +480,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
-    const [newTransaction] = await db.insert(transactions).values(transaction).returning();
+    const result = await db.insert(transactions).values(transaction);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newTransaction] = await db.select().from(transactions).where(eq(transactions.id, Number(insertId)));
+    if (!newTransaction) throw new Error('Failed to retrieve created transaction');
     return newTransaction;
   }
 
   async updateTransaction(id: number, transaction: Partial<InsertTransaction>): Promise<Transaction> {
-    const [updatedTransaction] = await db.update(transactions)
+    await db.update(transactions)
       .set({ ...transaction, updatedAt: new Date() })
-      .where(eq(transactions.id, id))
-      .returning();
+      .where(eq(transactions.id, id));
+    const [updatedTransaction] = await db.select().from(transactions).where(eq(transactions.id, id));
+    if (!updatedTransaction) throw new Error('Transaction not found');
     return updatedTransaction;
   }
 
@@ -475,15 +512,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
-    const [newAnnouncement] = await db.insert(announcements).values(announcement).returning();
+    const result = await db.insert(announcements).values(announcement);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newAnnouncement] = await db.select().from(announcements).where(eq(announcements.id, Number(insertId)));
+    if (!newAnnouncement) throw new Error('Failed to retrieve created announcement');
     return newAnnouncement;
   }
 
   async updateAnnouncement(id: number, announcement: Partial<InsertAnnouncement>): Promise<Announcement> {
-    const [updatedAnnouncement] = await db.update(announcements)
+    await db.update(announcements)
       .set({ ...announcement, updatedAt: new Date() })
-      .where(eq(announcements.id, id))
-      .returning();
+      .where(eq(announcements.id, id));
+    const [updatedAnnouncement] = await db.select().from(announcements).where(eq(announcements.id, id));
+    if (!updatedAnnouncement) throw new Error('Announcement not found');
     return updatedAnnouncement;
   }
 
@@ -502,15 +544,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTimetableEntry(timetableEntry: InsertTimetable): Promise<Timetable> {
-    const [newTimetableEntry] = await db.insert(timetable).values(timetableEntry).returning();
-    return newTimetableEntry;
+    try {
+      console.log('Creating timetable entry with data:', timetableEntry);
+      const result = await db.insert(timetable).values(timetableEntry);
+      console.log('Timetable insert result:', result);
+      
+      const insertId = (result as any).insertId;
+      console.log('Timetable insert ID:', insertId);
+      
+      if (!insertId) {
+        console.error('No insert ID returned from database for timetable');
+        throw new Error('Failed to get insert ID');
+      }
+      
+      const [newTimetableEntry] = await db.select().from(timetable).where(eq(timetable.id, Number(insertId)));
+      if (!newTimetableEntry) throw new Error('Failed to retrieve created timetable entry');
+      return newTimetableEntry;
+    } catch (error) {
+      console.error('Error creating timetable entry:', error);
+      throw error;
+    }
   }
 
   async updateTimetableEntry(id: number, timetableEntry: Partial<InsertTimetable>): Promise<Timetable> {
-    const [updatedTimetableEntry] = await db.update(timetable)
+    await db.update(timetable)
       .set({ ...timetableEntry, updatedAt: new Date() })
-      .where(eq(timetable.id, id))
-      .returning();
+      .where(eq(timetable.id, id));
+    const [updatedTimetableEntry] = await db.select().from(timetable).where(eq(timetable.id, id));
+    if (!updatedTimetableEntry) throw new Error('Timetable entry not found');
     return updatedTimetableEntry;
   }
 
@@ -537,6 +598,7 @@ export class DatabaseStorage implements IStorage {
       status: payroll.status,
       notes: payroll.notes,
       createdAt: payroll.createdAt,
+      updatedAt: payroll.updatedAt,
     })
     .from(payroll)
     .leftJoin(teachers, eq(payroll.teacherId, teachers.id))
@@ -559,11 +621,15 @@ export class DatabaseStorage implements IStorage {
     const grossSalary = basicSalary + allowances + overtime + bonus;
     const netSalary = grossSalary - deductions;
 
-    const [record] = await db.insert(payroll).values({
+    const result = await db.insert(payroll).values({
       ...insertPayroll,
       grossSalary: grossSalary.toString(),
       netSalary: netSalary.toString(),
-    }).returning();
+    });
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [record] = await db.select().from(payroll).where(eq(payroll.id, Number(insertId)));
+    if (!record) throw new Error('Failed to retrieve created payroll record');
     return record;
   }
 
@@ -588,10 +654,11 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    const [record] = await db.update(payroll)
+    await db.update(payroll)
       .set(updatePayroll)
-      .where(eq(payroll.id, id))
-      .returning();
+      .where(eq(payroll.id, id));
+    const [record] = await db.select().from(payroll).where(eq(payroll.id, id));
+    if (!record) throw new Error('Payroll record not found');
     return record;
   }
 
@@ -619,15 +686,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExam(exam: InsertExam): Promise<Exam> {
-    const [newExam] = await db.insert(exams).values(exam).returning();
-    return newExam;
+    try {
+      console.log('Creating exam with data:', exam);
+      const result = await db.insert(exams).values(exam);
+      console.log('Insert result:', result);
+      
+      const insertId = (result as any).insertId;
+      console.log('Insert ID:', insertId);
+      
+      if (!insertId) {
+        console.error('No insert ID returned from database');
+        throw new Error('Failed to get insert ID');
+      }
+      
+      const [newExam] = await db.select().from(exams).where(eq(exams.id, Number(insertId)));
+      if (!newExam) throw new Error('Failed to retrieve created exam');
+      return newExam;
+    } catch (error) {
+      console.error('Error creating exam:', error);
+      throw error;
+    }
   }
 
   async updateExam(id: number, exam: Partial<InsertExam>): Promise<Exam> {
-    const [updatedExam] = await db.update(exams)
+    await db.update(exams)
       .set({ ...exam, updatedAt: new Date() })
-      .where(eq(exams.id, id))
-      .returning();
+      .where(eq(exams.id, id));
+    const [updatedExam] = await db.select().from(exams).where(eq(exams.id, id));
+    if (!updatedExam) throw new Error('Exam not found');
     return updatedExam;
   }
 
@@ -652,15 +738,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createQuestion(question: InsertQuestion): Promise<Question> {
-    const [newQuestion] = await db.insert(questions).values(question).returning();
+    const result = await db.insert(questions).values(question);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newQuestion] = await db.select().from(questions).where(eq(questions.id, Number(insertId)));
+    if (!newQuestion) throw new Error('Failed to retrieve created question');
     return newQuestion;
   }
 
   async updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question> {
-    const [updatedQuestion] = await db.update(questions)
+    await db.update(questions)
       .set({ ...question, updatedAt: new Date() })
-      .where(eq(questions.id, id))
-      .returning();
+      .where(eq(questions.id, id));
+    const [updatedQuestion] = await db.select().from(questions).where(eq(questions.id, id));
+    if (!updatedQuestion) throw new Error('Question not found');
     return updatedQuestion;
   }
 
@@ -685,15 +776,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createQuestionOption(option: InsertQuestionOption): Promise<QuestionOption> {
-    const [newOption] = await db.insert(questionOptions).values(option).returning();
+    const result = await db.insert(questionOptions).values(option);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newOption] = await db.select().from(questionOptions).where(eq(questionOptions.id, Number(insertId)));
+    if (!newOption) throw new Error('Failed to retrieve created question option');
     return newOption;
   }
 
   async updateQuestionOption(id: number, option: Partial<InsertQuestionOption>): Promise<QuestionOption> {
-    const [updatedOption] = await db.update(questionOptions)
+    await db.update(questionOptions)
       .set(option)
-      .where(eq(questionOptions.id, id))
-      .returning();
+      .where(eq(questionOptions.id, id));
+    const [updatedOption] = await db.select().from(questionOptions).where(eq(questionOptions.id, id));
+    if (!updatedOption) throw new Error('Question option not found');
     return updatedOption;
   }
 
@@ -726,15 +822,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExamSubmission(submission: InsertExamSubmission): Promise<ExamSubmission> {
-    const [newSubmission] = await db.insert(examSubmissions).values(submission).returning();
+    const result = await db.insert(examSubmissions).values(submission);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newSubmission] = await db.select().from(examSubmissions).where(eq(examSubmissions.id, Number(insertId)));
+    if (!newSubmission) throw new Error('Failed to retrieve created exam submission');
     return newSubmission;
   }
 
   async updateExamSubmission(id: number, submission: Partial<InsertExamSubmission>): Promise<ExamSubmission> {
-    const [updatedSubmission] = await db.update(examSubmissions)
+    await db.update(examSubmissions)
       .set({ ...submission, updatedAt: new Date() })
-      .where(eq(examSubmissions.id, id))
-      .returning();
+      .where(eq(examSubmissions.id, id));
+    const [updatedSubmission] = await db.select().from(examSubmissions).where(eq(examSubmissions.id, id));
+    if (!updatedSubmission) throw new Error('Exam submission not found');
     return updatedSubmission;
   }
 
@@ -757,15 +858,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSubmissionAnswer(answer: InsertSubmissionAnswer): Promise<SubmissionAnswer> {
-    const [newAnswer] = await db.insert(submissionAnswers).values(answer).returning();
+    const result = await db.insert(submissionAnswers).values(answer);
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newAnswer] = await db.select().from(submissionAnswers).where(eq(submissionAnswers.id, Number(insertId)));
+    if (!newAnswer) throw new Error('Failed to retrieve created submission answer');
     return newAnswer;
   }
 
   async updateSubmissionAnswer(id: number, answer: Partial<InsertSubmissionAnswer>): Promise<SubmissionAnswer> {
-    const [updatedAnswer] = await db.update(submissionAnswers)
+    await db.update(submissionAnswers)
       .set({ ...answer, updatedAt: new Date() })
-      .where(eq(submissionAnswers.id, id))
-      .returning();
+      .where(eq(submissionAnswers.id, id));
+    const [updatedAnswer] = await db.select().from(submissionAnswers).where(eq(submissionAnswers.id, id));
+    if (!updatedAnswer) throw new Error('Submission answer not found');
     return updatedAnswer;
   }
 
@@ -798,15 +904,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExamResult(result: InsertExamResult): Promise<ExamResult> {
-    const [newResult] = await db.insert(examResults).values(result).returning();
+    const insertResult = await db.insert(examResults).values(result);
+    const insertId = (insertResult as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    const [newResult] = await db.select().from(examResults).where(eq(examResults.id, Number(insertId)));
+    if (!newResult) throw new Error('Failed to retrieve created exam result');
     return newResult;
   }
 
   async updateExamResult(id: number, result: Partial<InsertExamResult>): Promise<ExamResult> {
-    const [updatedResult] = await db.update(examResults)
+    await db.update(examResults)
       .set({ ...result, updatedAt: new Date() })
-      .where(eq(examResults.id, id))
-      .returning();
+      .where(eq(examResults.id, id));
+    const [updatedResult] = await db.select().from(examResults).where(eq(examResults.id, id));
+    if (!updatedResult) throw new Error('Exam result not found');
     return updatedResult;
   }
 

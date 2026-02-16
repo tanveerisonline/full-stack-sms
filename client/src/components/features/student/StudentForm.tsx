@@ -19,11 +19,13 @@ import type { UploadResult } from '@uppy/core';
 const studentFormSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(10, 'Phone number must be at least 10 characters'),
+  email: z.string().refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: 'Invalid email address'
+  }).optional(),
+  phone: z.string().min(10, 'Phone number must be at least 10 characters').optional(),
   grade: z.string().min(1, 'Please select a grade'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  address: z.string().min(10, 'Address must be at least 10 characters'),
+  address: z.string().min(10, 'Address must be at least 10 characters').optional(),
   parentName: z.string().min(2, 'Parent name must be at least 2 characters'),
   parentContact: z.string().min(10, 'Parent contact must be at least 10 characters'),
   avatar: z.string().optional(),
@@ -48,14 +50,14 @@ function StudentForm({ isOpen, onClose, onSubmit, student, isLoading = false }: 
     defaultValues: {
       firstName: student?.firstName || '',
       lastName: student?.lastName || '',
-      email: student?.email || '',
-      phone: student?.phone || '',
+      email: student?.email ?? '',
+      phone: student?.phone ?? '',
       grade: student?.grade || '',
-      dateOfBirth: student?.dateOfBirth || '',
-      address: student?.address || '',
-      parentName: student?.parentName || '',
-      parentContact: student?.parentContact || '',
-      avatar: student?.avatar || '',
+      dateOfBirth: student?.dateOfBirth ? (typeof student.dateOfBirth === 'string' ? student.dateOfBirth.split('T')[0] : student.dateOfBirth instanceof Date ? student.dateOfBirth.toISOString().split('T')[0] : '') : '',
+      address: student?.address ?? '',
+      parentName: student?.parentName ?? '',
+      parentContact: student?.parentContact ?? '',
+      avatar: student?.avatar ?? '',
     },
   });
 

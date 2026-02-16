@@ -11,7 +11,7 @@ import { ObjectUploader } from '@/components/ui/ObjectUploader';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, X } from 'lucide-react';
-import type { Teacher } from '@shared/schema';
+import type { Teacher } from '@/types';
 import type { UploadResult } from '@uppy/core';
 
 const staffFormSchema = z.object({
@@ -65,7 +65,7 @@ function StaffForm({ isOpen, onClose, onSubmit, teacher, isLoading = false }: St
       experience: (teacher as any)?.experience || 0,
       salary: Number((teacher as any)?.salary) || 0,
       hireDate: (teacher as any)?.hireDate || '',
-      dateOfBirth: teacher?.dateOfBirth || '',
+      dateOfBirth: teacher?.dateOfBirth ? (teacher.dateOfBirth instanceof Date ? teacher.dateOfBirth.toISOString().split('T')[0] : new Date(teacher.dateOfBirth).toISOString().split('T')[0]) : '',
       address: teacher?.address || '',
       avatar: teacher?.avatar || '',
     },

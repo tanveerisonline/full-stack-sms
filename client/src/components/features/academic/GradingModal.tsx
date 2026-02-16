@@ -62,6 +62,7 @@ function GradingModal({ isOpen, onClose, onSave, selectedStudent }: GradingModal
       setFormData({
         studentId: '',
         studentName: '',
+        studentGrade: '',
         subject: '',
         assignmentId: '',
         gradeType: 'assignment',
@@ -202,7 +203,7 @@ function GradingModal({ isOpen, onClose, onSave, selectedStudent }: GradingModal
                           onClick={() => {
                             setFormData(prev => ({
                               ...prev,
-                              studentId: student.id,
+                              studentId: student.id.toString(),
                               studentName: `${student.firstName} ${student.lastName}`,
                               studentGrade: student.grade
                             }));

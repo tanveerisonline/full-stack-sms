@@ -52,7 +52,10 @@ export default function UserProfile() {
     mutationFn: async (data: ProfileFormData) => {
       return apiRequest('/api/profile', {
         method: 'PUT',
-        body: data,
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
     },
     onSuccess: () => {
@@ -76,10 +79,14 @@ export default function UserProfile() {
     mutationFn: async (photoURL: string) => {
       return apiRequest('/api/photos/avatar', {
         method: 'PUT',
-        body: { photoURL },
+        body: JSON.stringify({ photoURL }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
     },
-    onSuccess: (data) => {
+    onSuccess: async (response) => {
+      const data = await response.json();
       setPhotoUrl(data.avatar);
       form.setValue('avatar', data.avatar);
       toast({
@@ -99,14 +106,15 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (profile) {
+      const profileData = profile as any; // Type assertion since useQuery returns unknown
       form.reset({
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        avatar: profile.avatar || '',
+        firstName: profileData.firstName || '',
+        lastName: profileData.lastName || '',
+        email: profileData.email || '',
+        phone: profileData.phone || '',
+        avatar: profileData.avatar || '',
       });
-      setPhotoUrl(profile.avatar || null);
+      setPhotoUrl(profileData.avatar || null);
     }
   }, [profile, form]);
 
@@ -119,9 +127,10 @@ export default function UserProfile() {
       const response = await apiRequest('/api/photos/upload', {
         method: 'POST',
       });
+      const data = await response.json();
       return {
         method: 'PUT' as const,
-        url: response.uploadURL,
+        url: data.uploadURL,
       };
     } catch (error) {
       toast({

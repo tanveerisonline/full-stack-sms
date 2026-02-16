@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequestJson } from '@/lib/queryClient';
 import type { ExamResult } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
@@ -24,13 +24,13 @@ export function ResultViewer({ examId }: ResultViewerProps) {
   // Get results for the exam
   const { data: results, isLoading } = useQuery<ExamResult[]>({
     queryKey: ['/api/exams', examId, 'results'],
-    queryFn: () => apiRequest(`/api/exams/${examId}/results`),
+    queryFn: () => apiRequestJson(`/api/exams/${examId}/results`),
   });
 
   // Get detailed result data
   const { data: resultDetails } = useQuery<ExamResult>({
     queryKey: ['/api/results', selectedResult],
-    queryFn: () => selectedResult ? apiRequest(`/api/results/${selectedResult}`) : null,
+    queryFn: selectedResult ? () => apiRequestJson(`/api/results/${selectedResult}`) : undefined,
     enabled: !!selectedResult,
   });
 
@@ -254,7 +254,7 @@ export function ResultViewer({ examId }: ResultViewerProps) {
                     </div>
                     {result.timeSpent !== undefined && (
                       <div className="text-sm text-gray-600" data-testid={`result-time-${result.id}`}>
-                        Time: {Math.floor(result.timeSpent / 60)}m {result.timeSpent % 60}s
+                        Time: {result.timeSpent ? `${Math.floor(result.timeSpent / 60)}m ${result.timeSpent % 60}s` : 'N/A'}
                       </div>
                     )}
                   </div>
@@ -321,7 +321,7 @@ export function ResultViewer({ examId }: ResultViewerProps) {
                         <strong>Total Questions:</strong> {resultDetails.totalQuestions}
                       </div>
                       <div data-testid="detail-accuracy">
-                        <strong>Accuracy:</strong> {resultDetails.totalQuestions > 0 ? 
+                        <strong>Accuracy:</strong> {(resultDetails.totalQuestions && resultDetails.totalQuestions > 0 && resultDetails.correctAnswers) ?
                           Math.round((resultDetails.correctAnswers / resultDetails.totalQuestions) * 100) : 0}%
                       </div>
                       <div data-testid="detail-time-spent">

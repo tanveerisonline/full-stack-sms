@@ -40,6 +40,10 @@ export default function HR() {
     queryKey: ['/api/teachers/stats'],
   });
 
+  // Type assertions for better TypeScript support
+  const teachersData = teachers as Teacher[];
+  const statsData = stats as any;
+
   // Add teacher mutation
   const addTeacherMutation = useMutation({
     mutationFn: async (teacherData: any) => {
@@ -151,7 +155,7 @@ export default function HR() {
   };
 
   // Filter teachers based on search and filters
-  const filteredTeachers = teachers.filter((teacher: Teacher) => {
+  const filteredTeachers = teachersData.filter((teacher: Teacher) => {
     const matchesSearch = 
       teacher.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacher.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -164,7 +168,7 @@ export default function HR() {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  const departments = [...new Set(teachers.map((t: Teacher) => (t as any).department).filter(Boolean))];
+  const departments = Array.from(new Set(teachersData.map((t: Teacher) => (t as any).department).filter(Boolean)));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -196,7 +200,7 @@ export default function HR() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Teachers</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-total-teachers">
-                    {stats?.total || teachers.length}
+                    {statsData?.total || teachersData.length}
                   </p>
                 </div>
               </div>
@@ -210,7 +214,7 @@ export default function HR() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Active Teachers</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-active-teachers">
-                    {stats?.active || teachers.filter((t: Teacher) => t.status === 'active').length}
+                    {statsData?.active || teachersData.filter((t: Teacher) => t.status === 'active').length}
                   </p>
                 </div>
               </div>
@@ -238,7 +242,7 @@ export default function HR() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">New This Month</p>
                   <p className="text-2xl font-bold text-gray-900" data-testid="text-new-teachers">
-                    {stats?.newThisMonth || 0}
+                    {statsData?.newThisMonth || 0}
                   </p>
                 </div>
               </div>
@@ -377,7 +381,7 @@ export default function HR() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{(teacher as any).department || 'N/A'}</div>
-                          <div className="text-sm text-gray-500">{(teacher as any).subject || teacher.subjects?.join(', ') || 'N/A'}</div>
+                          <div className="text-sm text-gray-500">{(teacher as any).subject || 'N/A'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge 
@@ -408,7 +412,7 @@ export default function HR() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteTeacher(teacher.id)}
+                              onClick={() => handleDeleteTeacher(String(teacher.id))}
                               className="text-red-600 hover:text-red-900"
                               data-testid={`button-delete-${teacher.id}`}
                             >

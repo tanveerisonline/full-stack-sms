@@ -69,7 +69,7 @@ export class UserController {
 
   static async getUserProfile(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user!.claims?.sub || req.user!.id;
+      const userId = req.user!.id;
       const user = await userService.getUserById(userId.toString());
       
       if (!user) {

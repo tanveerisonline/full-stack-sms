@@ -39,7 +39,7 @@ function AssignmentModal({ assignment, isOpen, onClose, onSave }: AssignmentModa
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const subjects = courses.length > 0 ? Array.from(new Set(courses.map(c => c.subject))) : SUBJECTS;
+  const subjects = Array.isArray(courses) && courses.length > 0 ? Array.from(new Set(courses.map((c: any) => c.subject))) : SUBJECTS;
 
   useEffect(() => {
     if (assignment) {
@@ -50,7 +50,7 @@ function AssignmentModal({ assignment, isOpen, onClose, onSave }: AssignmentModa
         grade: assignment.grade,
         section: assignment.section || '',
         totalMarks: assignment.totalMarks || 100,
-        dueDate: assignment.dueDate,
+        dueDate: assignment.dueDate ? (assignment.dueDate instanceof Date ? assignment.dueDate.toISOString().split('T')[0] : new Date(assignment.dueDate).toISOString().split('T')[0]) : '',
         teacherId: assignment.teacherId,
         status: 'active' as const,
         instructions: assignment.instructions || '',
@@ -109,7 +109,7 @@ function AssignmentModal({ assignment, isOpen, onClose, onSave }: AssignmentModa
     const assignmentData = {
       ...formData,
       id: assignment?.id || `assignment_${Date.now()}`,
-      dueDate: new Date(formData.dueDate).toISOString(),
+      dueDate: new Date(formData.dueDate),
       createdAt: assignment?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -171,7 +171,7 @@ function AssignmentModal({ assignment, isOpen, onClose, onSave }: AssignmentModa
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects.map((subject) => (
+                  {subjects.map((subject: string) => (
                     <SelectItem key={subject} value={subject}>
                       {subject}
                     </SelectItem>

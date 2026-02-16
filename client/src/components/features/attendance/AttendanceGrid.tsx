@@ -13,7 +13,7 @@ interface AttendanceGridProps {
 }
 
 interface AttendanceEntry {
-  studentId: number;
+  studentId: string | number;
   status: 'present' | 'absent' | 'late' | 'holiday';
   notes: string;
 }
@@ -24,7 +24,7 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
   useEffect(() => {
     // Initialize attendance data with existing records or default to 'present'
     const initialData = students.map(student => {
-      const existingRecord = existingAttendance.find(record => record.studentId === student.id);
+      const existingRecord = existingAttendance.find(record => record.studentId.toString() === student.id.toString());
       return {
         studentId: student.id,
         status: existingRecord?.status || 'present' as 'present' | 'absent' | 'late' | 'holiday',
@@ -34,10 +34,10 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
     setAttendanceData(initialData);
   }, [students, existingAttendance]);
 
-  const updateAttendance = (studentId: number, field: 'status' | 'notes', value: string) => {
+  const updateAttendance = (studentId: string | number, field: 'status' | 'notes', value: string) => {
     setAttendanceData(prev => 
       prev.map(entry => 
-        entry.studentId === studentId 
+        entry.studentId.toString() === studentId.toString()
           ? { ...entry, [field]: value }
           : entry
       )
@@ -59,8 +59,8 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
     return attendanceData.filter(entry => entry.status === status).length;
   };
 
-  const handleIndividualSubmit = async (studentId: number) => {
-    const studentAttendance = attendanceData.find(entry => entry.studentId === studentId);
+  const handleIndividualSubmit = async (studentId: string | number) => {
+    const studentAttendance = attendanceData.find(entry => entry.studentId.toString() === studentId.toString());
     if (!studentAttendance) return;
 
     const attendanceRecord = {
@@ -129,14 +129,14 @@ function AttendanceGrid({ students, date, existingAttendance, onSave }: Attendan
           </thead>
           <tbody className="divide-y divide-slate-200">
             {students.map((student, index) => {
-              const attendance = attendanceData.find(entry => entry.studentId === student.id);
+              const attendance = attendanceData.find(entry => entry.studentId.toString() === student.id.toString());
               
               return (
                 <tr key={student.id} className="hover:bg-slate-50" data-testid={`attendance-row-${student.id}`}>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={student.avatar} alt={`${student.firstName} ${student.lastName}`} />
+                        <AvatarImage src={student.avatar || undefined} alt={`${student.firstName} ${student.lastName}`} />
                         <AvatarFallback>
                           {student.firstName[0]}{student.lastName[0]}
                         </AvatarFallback>

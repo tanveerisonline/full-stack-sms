@@ -5,7 +5,8 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-export const formatDate = (date: string): string => {
+export const formatDate = (date: string | Date | null | undefined): string => {
+  if (!date) return 'N/A';
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
@@ -13,7 +14,8 @@ export const formatDate = (date: string): string => {
   }).format(new Date(date));
 };
 
-export const formatDateTime = (date: string): string => {
+export const formatDateTime = (date: string | Date | null | undefined): string => {
+  if (!date) return 'N/A';
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
@@ -54,7 +56,8 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
   return `${value.toFixed(decimals)}%`;
 };
 
-export const formatPhoneNumber = (phone: string): string => {
+export const formatPhoneNumber = (phone: string | null | undefined): string => {
+  if (!phone) return 'N/A';
   const cleaned = phone.replace(/\D/g, '');
   const match = cleaned.match(/^(\d{1})(\d{3})(\d{3})(\d{4})$/);
   if (match) {

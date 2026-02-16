@@ -156,7 +156,7 @@ function TeacherDetailModal({ teacher, isOpen, onClose, onEdit }: TeacherDetailM
                       <GraduationCap className="w-4 h-4 text-slate-400" />
                       <span className="text-slate-600">Subject:</span>
                       <span className="font-medium text-slate-800" data-testid="text-teacher-subject">
-                        {(teacher as any).subject || teacher.subjects?.join(', ') || 'N/A'}
+                        {(teacher as any).subject || 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -253,7 +253,7 @@ function TeacherDetailModal({ teacher, isOpen, onClose, onEdit }: TeacherDetailM
                     <div>
                       <label className="text-sm font-medium text-slate-600">Subject(s)</label>
                       <p className="text-slate-800" data-testid="text-subjects">
-                        {(teacher as any).subject || teacher.subjects?.join(', ') || 'Not assigned'}
+                        {(teacher as any).subject || 'Not assigned'}
                       </p>
                     </div>
 

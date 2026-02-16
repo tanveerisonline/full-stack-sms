@@ -81,35 +81,41 @@ export default function SuperAdminDashboard() {
     queryKey: ['/api/super-admin/dashboard/stats'],
     enabled: isAuthenticated && !!token,
     refetchInterval: 30000, // Refresh every 30 seconds
-    retry: 2,
-    onError: (error) => {
-      console.error('Failed to fetch dashboard stats:', error);
-    }
+    retry: 2
   });
+  
+  // Handle stats error
+  if (statsError) {
+    console.error('Failed to fetch dashboard stats:', statsError);
+  }
 
   const { data: activitiesData, isLoading: activitiesLoading, error: activitiesError } = useQuery({
     queryKey: ['/api/super-admin/dashboard/activities'],
     enabled: isAuthenticated && !!token,
     refetchInterval: 60000, // Refresh every minute
-    retry: 2,
-    onError: (error) => {
-      console.error('Failed to fetch activities:', error);
-    }
+    retry: 2
   });
+  
+  // Handle activities error
+  if (activitiesError) {
+    console.error('Failed to fetch activities:', activitiesError);
+  }
 
   const { data: securityData, isLoading: securityLoading, error: securityError } = useQuery({
     queryKey: ['/api/super-admin/dashboard/security'],
     enabled: isAuthenticated && !!token,
     refetchInterval: 300000, // Refresh every 5 minutes
-    retry: 2,
-    onError: (error) => {
-      console.error('Failed to fetch security data:', error);
-    }
+    retry: 2
   });
+  
+  // Handle security error
+  if (securityError) {
+    console.error('Failed to fetch security data:', securityError);
+  }
 
   // Use real data or fallback to defaults with proper error handling
   const systemStats: SystemStats = statsError 
-    ? statsError.response?.data?.stats || {
+    ? {
         totalUsers: 0,
         activeUsers: 0,
         totalStudents: 0,

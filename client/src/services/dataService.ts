@@ -196,7 +196,7 @@ export class DataService {
     const records = this.getAttendanceRecords();
     const newRecord: AttendanceRecord = {
       ...record,
-      id: Date.now().toString(),
+      id: Date.now(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

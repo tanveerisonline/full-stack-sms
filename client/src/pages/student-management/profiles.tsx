@@ -21,7 +21,7 @@ export default function StudentProfiles() {
   const filteredStudents = students.filter(student =>
     student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+   student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -116,7 +116,7 @@ export default function StudentProfiles() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={student.avatar} alt={`${student.firstName} ${student.lastName}`} />
+                      <AvatarImage src={student.avatar || undefined} alt={`${student.firstName} ${student.lastName}`} />
                       <AvatarFallback className="bg-primary-100 text-primary-700">
                         {student.firstName[0]}{student.lastName[0]}
                       </AvatarFallback>
@@ -161,7 +161,7 @@ export default function StudentProfiles() {
                   
                   <div className="flex items-center space-x-2 text-sm">
                     <MapPin className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-600 truncate" data-testid={`text-student-address-${student.id}`} title={student.address}>
+                    <span className="text-slate-600 truncate" data-testid={`text-student-address-${student.id}`} title={student.address || undefined}>
                       {student.address}
                     </span>
                   </div>

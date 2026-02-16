@@ -1,0 +1,13 @@
+{
+  "title": "English Essay",
+  "description": "Sample assignment description",
+  "subject": "English", 
+  "grade": "Grade 10",
+  "section": "",
+  "totalMarks": 100,
+  "dueDate": "2025-09-20T00:00:00.000Z",
+  "teacherId": 3,
+  "status": "active",
+  "instructions": "",
+  "attachments": ""
+}

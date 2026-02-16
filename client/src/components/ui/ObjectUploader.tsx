@@ -99,7 +99,7 @@ export function ObjectUploader({
         open={showModal}
         onRequestClose={() => setShowModal(false)}
         proudlyDisplayPoweredByUppy={false}
-        showProgressDetails={true}
+        hideProgressDetails={false}
         hideUploadButton={false}
         hideRetryButton={false}
         hidePauseResumeButton={false}

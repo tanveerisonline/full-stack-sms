@@ -47,7 +47,7 @@ function StudentTable({ students, onEdit, onDelete, onView }: StudentTableProps)
     const matchesSearch = 
       student.firstName.toLowerCase().includes(search.toLowerCase()) ||
       student.lastName.toLowerCase().includes(search.toLowerCase()) ||
-      student.email.toLowerCase().includes(search.toLowerCase()) ||
+     student.email?.toLowerCase().includes(search.toLowerCase()) ||
       student.rollNumber.toLowerCase().includes(search.toLowerCase());
     
     const matchesGrade = gradeFilter === 'all' || student.grade === gradeFilter;
@@ -217,7 +217,7 @@ function StudentTable({ students, onEdit, onDelete, onView }: StudentTableProps)
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(student.id, `${student.firstName} ${student.lastName}`)}
+                            onClick={() => handleDelete(String(student.id), `${student.firstName} ${student.lastName}`)}
                             data-testid={`button-delete-student-${student.id}`}
                           >
                             <Trash2 className="w-4 h-4" />

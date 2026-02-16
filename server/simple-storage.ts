@@ -34,7 +34,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const result = await db.insert(users).values(insertUser);
+    const insertId = (result as any).insertId;
+    const [user] = await db.select().from(users).where(eq(users.id, insertId));
     return user;
   }
 
@@ -49,15 +51,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createStudent(student: InsertStudent): Promise<Student> {
-    const [newStudent] = await db.insert(students).values(student).returning();
+    // Generate required fields
+    const rollNumber = `STU${Date.now().toString().slice(-6)}`;
+    const studentData = {
+      ...student,
+      rollNumber,
+      admissionDate: new Date(),
+    };
+    const result = await db.insert(students).values(studentData);
+    const insertId = (result as any).insertId;
+    const [newStudent] = await db.select().from(students).where(eq(students.id, insertId));
     return newStudent;
   }
 
   async updateStudent(id: number, student: Partial<InsertStudent>): Promise<Student> {
-    const [updatedStudent] = await db.update(students)
+    await db.update(students)
       .set(student)
-      .where(eq(students.id, id))
-      .returning();
+      .where(eq(students.id, id));
+    const [updatedStudent] = await db.select().from(students).where(eq(students.id, id));
     return updatedStudent;
   }
 

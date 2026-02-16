@@ -345,14 +345,21 @@ router.post('/users', async (req: AuthenticatedRequest, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     
-    const [newUser] = await db
+    const result = await db
       .insert(users)
       .values({
         ...userData,
         password: hashedPassword,
         isApproved: userData.isApproved ?? true, // Super admin created users are auto-approved by default
-      })
-      .returning();
+      });
+    
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    
+    const [newUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, Number(insertId)));
 
     await logAuditEvent(
       req.user!.id,
@@ -407,11 +414,15 @@ router.put('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
     // Update timestamp
     dataToUpdate.updatedAt = new Date();
 
-    const [updatedUser] = await db
+    await db
       .update(users)
       .set(dataToUpdate)
-      .where(eq(users.id, userId))
-      .returning();
+      .where(eq(users.id, userId));
+    
+    const [updatedUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
 
     await logAuditEvent(
       req.user!.id,
@@ -524,13 +535,20 @@ router.post('/settings', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const settingData = insertSystemSettingSchema.parse(req.body);
     
-    const [newSetting] = await db
+    const result = await db
       .insert(systemSettings)
       .values({
         ...settingData,
         updatedBy: req.user!.id,
-      })
-      .returning();
+      });
+    
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    
+    const [newSetting] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.id, Number(insertId)));
 
     await logAuditEvent(
       req.user!.id,
@@ -563,14 +581,18 @@ router.put('/settings/:id', async (req: AuthenticatedRequest, res: Response) => 
       return res.status(404).json({ message: 'Setting not found' });
     }
 
-    const [updatedSetting] = await db
+    await db
       .update(systemSettings)
       .set({ 
         ...updateData, 
         updatedBy: req.user!.id 
       })
-      .where(eq(systemSettings.id, settingId))
-      .returning();
+      .where(eq(systemSettings.id, settingId));
+    
+    const [updatedSetting] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.id, settingId));
 
     await logAuditEvent(
       req.user!.id,
@@ -604,10 +626,17 @@ router.post('/roles', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const roleData = insertRoleSchema.parse(req.body);
     
-    const [newRole] = await db
+    const result = await db
       .insert(roles)
-      .values(roleData)
-      .returning();
+      .values(roleData);
+    
+    const insertId = (result as any).insertId;
+    if (!insertId) throw new Error('Failed to get insert ID');
+    
+    const [newRole] = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.id, Number(insertId)));
 
     await logAuditEvent(
       req.user!.id,
@@ -631,11 +660,15 @@ router.put('/roles/:id', async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const validatedData = insertRoleSchema.partial().parse(req.body);
     
-    const [role] = await db
+    await db
       .update(roles)
       .set(validatedData)
-      .where(eq(roles.id, parseInt(id)))
-      .returning();
+      .where(eq(roles.id, parseInt(id)));
+    
+    const [role] = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.id, parseInt(id)));
     
     if (!role) {
       return res.status(404).json({ message: 'Role not found' });
@@ -730,11 +763,15 @@ router.delete('/sessions/:id', async (req: AuthenticatedRequest, res: Response) 
   try {
     const { id } = req.params;
     
-    const [session] = await db
+    await db
       .update(userSessions)
       .set({ isActive: false })
-      .where(eq(userSessions.id, parseInt(id)))
-      .returning();
+      .where(eq(userSessions.id, parseInt(id)));
+    
+    const [session] = await db
+      .select()
+      .from(userSessions)
+      .where(eq(userSessions.id, parseInt(id)));
     
     if (!session) {
       return res.status(404).json({ message: 'Session not found' });

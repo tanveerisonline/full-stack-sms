@@ -45,6 +45,9 @@ export const insertTeacherSchema = createInsertSchema(teachers, {
   employeeId: z.string().min(1, "Employee ID is required"),
   experience: z.coerce.number().min(0, "Experience must be positive").optional(),
   salary: z.coerce.string().optional(),
+  // Accept date strings and convert them
+  hireDate: z.string().transform((val) => val),
+  dateOfBirth: z.string().optional().transform((val) => val),
 }).omit({
   id: true,
   createdAt: true,

@@ -1,2 +1,3 @@
 // Teacher Management Components
-// Add teacher-specific components here as they are created
+// Export all teacher-related components when available
+export {}; // Empty export to make this a valid module

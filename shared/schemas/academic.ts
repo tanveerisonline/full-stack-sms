@@ -122,7 +122,10 @@ export const insertTimetableSchema = createInsertSchema(timetable).omit({
   updatedAt: true,
 });
 
-export const insertAssignmentSchema = createInsertSchema(assignments).omit({
+export const insertAssignmentSchema = createInsertSchema(assignments, {
+  // Accept date strings for dueDate
+  dueDate: z.string().transform((val) => val),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

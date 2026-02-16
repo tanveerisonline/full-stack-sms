@@ -34,7 +34,7 @@ export class AuditService {
     return await db
       .select()
       .from(auditLogs)
-      .orderBy(auditLogs.timestamp)
+      .orderBy(auditLogs.createdAt)
       .limit(limit);
   }
 }

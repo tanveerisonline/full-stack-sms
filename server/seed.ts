@@ -2,6 +2,7 @@ import { storage } from './storage';
 import bcrypt from 'bcrypt';
 import { db } from './db';
 import { users } from '../shared/schemas/user';
+import { eq } from 'drizzle-orm';
 
 export async function seedDatabase() {
   console.log('🌱 Seeding database with sample data...');
@@ -12,43 +13,64 @@ export async function seedDatabase() {
     
     // Create super admin user
     const superAdminPassword = await bcrypt.hash('superadmin123', 10);
-    await db.insert(users).values({
-      username: 'superadmin',
-      password: superAdminPassword,
-      role: 'super_admin',
-      firstName: 'Super',
-      lastName: 'Admin',
-      email: 'superadmin@edumanage.pro',
-      phone: '+1234567890',
-      isActive: true,
-      isApproved: true
-    }).onDuplicateKeyUpdate({
-      set: {
+    
+    // Check if super admin exists first
+    const [existingSuperAdmin] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, 'superadmin'))
+      .limit(1);
+    
+    if (!existingSuperAdmin) {
+      await db.insert(users).values({
+        username: 'superadmin',
         password: superAdminPassword,
-        updatedAt: new Date()
-      }
-    });
+        role: 'super_admin',
+        firstName: 'Super',
+        lastName: 'Admin',
+        email: 'superadmin@edumanage.pro',
+        phone: '+1234567890',
+        isActive: true,
+        isApproved: true
+      });
+      console.log('✅ Created super admin');
+    } else {
+      console.log('✅ Super admin already exists, updating password');
+      await db.update(users)
+        .set({ password: superAdminPassword, updatedAt: new Date() })
+        .where(eq(users.id, existingSuperAdmin.id));
+    }
     
     // Create regular admin user
     const adminPassword = await bcrypt.hash('password', 10);
-    await db.insert(users).values({
-      username: 'admin',
-      password: adminPassword,
-      role: 'admin',
-      firstName: 'School',
-      lastName: 'Admin',
-      email: 'admin@school.edu',
-      phone: '+1234567891',
-      isActive: true,
-      isApproved: true
-    }).onDuplicateKeyUpdate({
-      set: {
-        password: adminPassword,
-        updatedAt: new Date()
-      }
-    });
     
-    console.log('✅ Created admin users');
+    const [existingAdmin] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, 'admin'))
+      .limit(1);
+    
+    if (!existingAdmin) {
+      await db.insert(users).values({
+        username: 'admin',
+        password: adminPassword,
+        role: 'admin',
+        firstName: 'School',
+        lastName: 'Admin',
+        email: 'admin@school.edu',
+        phone: '+1234567891',
+        isActive: true,
+        isApproved: true
+      });
+      console.log('✅ Created regular admin');
+    } else {
+      console.log('✅ Regular admin already exists, updating password');
+      await db.update(users)
+        .set({ password: adminPassword, updatedAt: new Date() })
+        .where(eq(users.id, existingAdmin.id));
+    }
+    
+    console.log('✅ Admin users ready');
     console.log('  - Super Admin: superadmin@edumanage.pro / superadmin123');
     console.log('  - Admin: admin@school.edu / password');
     // Check if data already exists
@@ -66,7 +88,7 @@ export async function seedDatabase() {
         lastName: 'Johnson',
         email: 'sarah.johnson@school.edu',
         phone: '555-0101',
-        hireDate: '2020-08-15',
+        hireDate: new Date('2020-08-15'),
         department: 'Mathematics',
         subject: 'Mathematics',
         qualification: 'M.Sc Mathematics',
@@ -81,7 +103,7 @@ export async function seedDatabase() {
         lastName: 'Chen',
         email: 'michael.chen@school.edu',
         phone: '555-0102',
-        hireDate: '2019-08-20',
+        hireDate: new Date('2019-08-20'),
         department: 'Science',
         subject: 'Physics',
         qualification: 'Ph.D Physics',
@@ -96,7 +118,7 @@ export async function seedDatabase() {
         lastName: 'Rodriguez',
         email: 'emily.rodriguez@school.edu',
         phone: '555-0103',
-        hireDate: '2021-08-10',
+        hireDate: new Date('2021-08-10'),
         department: 'English',
         subject: 'English Literature',
         qualification: 'M.A English',
@@ -112,15 +134,13 @@ export async function seedDatabase() {
     // Seed Students
     const students = await Promise.all([
       storage.createStudent({
-        rollNumber: '2024001',
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@student.edu',
         phone: '555-1001',
-        dateOfBirth: '2008-03-15',
+        dateOfBirth: new Date('2008-03-15'),
         grade: '10',
         section: 'A',
-        admissionDate: '2024-01-15',
         parentName: 'Robert Doe',
         parentContact: '555-1002',
         parentEmail: 'robert.doe@parent.com',
@@ -128,15 +148,13 @@ export async function seedDatabase() {
         status: 'active'
       }),
       storage.createStudent({
-        rollNumber: '2024002',
         firstName: 'Emma',
         lastName: 'Smith',
         email: 'emma.smith@student.edu',
         phone: '555-1003',
-        dateOfBirth: '2008-07-22',
+        dateOfBirth: new Date('2008-07-22'),
         grade: '10',
         section: 'A',
-        admissionDate: '2024-01-15',
         parentName: 'David Smith',
         parentContact: '555-1004',
         parentEmail: 'david.smith@parent.com',
@@ -144,15 +162,13 @@ export async function seedDatabase() {
         status: 'active'
       }),
       storage.createStudent({
-        rollNumber: '2024003',
         firstName: 'Michael',
         lastName: 'Johnson',
         email: 'michael.johnson@student.edu',
         phone: '555-1005',
-        dateOfBirth: '2007-11-10',
+        dateOfBirth: new Date('2007-11-10'),
         grade: '11',
         section: 'B',
-        admissionDate: '2023-08-20',
         parentName: 'Lisa Johnson',
         parentContact: '555-1006',
         parentEmail: 'lisa.johnson@parent.com',
@@ -160,15 +176,13 @@ export async function seedDatabase() {
         status: 'active'
       }),
       storage.createStudent({
-        rollNumber: '2024004',
         firstName: 'Sofia',
         lastName: 'Garcia',
         email: 'sofia.garcia@student.edu',
         phone: '555-1007',
-        dateOfBirth: '2008-05-18',
+        dateOfBirth: new Date('2008-05-18'),
         grade: '10',
         section: 'B',
-        admissionDate: '2024-01-15',
         parentName: 'Carlos Garcia',
         parentContact: '555-1008',
         parentEmail: 'carlos.garcia@parent.com',
@@ -246,7 +260,7 @@ export async function seedDatabase() {
         grade: '10',
         section: 'A',
         teacherId: teachers[0].id,
-        dueDate: '2024-09-15',
+        dueDate: new Date('2024-09-15'),
         totalMarks: 100,
         instructions: 'Complete all problems showing work. Use graphing calculator where needed.',
         status: 'active'
@@ -258,7 +272,7 @@ export async function seedDatabase() {
         grade: '11',
         section: 'B',
         teacherId: teachers[1].id,
-        dueDate: '2024-09-20',
+        dueDate: new Date('2024-09-20'),
         totalMarks: 50,
         instructions: 'Include data tables, graphs, and error analysis.',
         status: 'active'
@@ -270,7 +284,7 @@ export async function seedDatabase() {
         grade: '10',
         section: 'A',
         teacherId: teachers[2].id,
-        dueDate: '2024-09-25',
+        dueDate: new Date('2024-09-25'),
         totalMarks: 75,
         instructions: 'Minimum 500 words. Include quotes and citations.',
         status: 'active'
@@ -286,9 +300,9 @@ export async function seedDatabase() {
         type: 'tuition',
         amount: '2500.00',
         description: 'Q1 2024 Tuition Fee',
-        dueDate: '2024-04-01',
+        dueDate: new Date('2024-04-01'),
         status: 'paid',
-        paidDate: '2024-03-28',
+        paidDate: new Date('2024-03-28'),
         paymentMethod: 'bank_transfer'
       }),
       storage.createTransaction({
@@ -296,7 +310,7 @@ export async function seedDatabase() {
         type: 'tuition',
         amount: '2500.00',
         description: 'Q1 2024 Tuition Fee',
-        dueDate: '2024-04-01',
+        dueDate: new Date('2024-04-01'),
         status: 'pending'
       }),
       storage.createTransaction({
@@ -304,7 +318,7 @@ export async function seedDatabase() {
         type: 'library',
         amount: '15.00',
         description: 'Late return fine for Physics textbook',
-        dueDate: '2024-09-10',
+        dueDate: new Date('2024-09-10'),
         status: 'pending'
       }),
       storage.createTransaction({
@@ -312,9 +326,9 @@ export async function seedDatabase() {
         type: 'transport',
         amount: '150.00',
         description: 'Monthly bus pass fee',
-        dueDate: '2024-09-01',
+        dueDate: new Date('2024-09-01'),
         status: 'paid',
-        paidDate: '2024-08-30',
+        paidDate: new Date('2024-08-30'),
         paymentMethod: 'cash'
       })
     ]);
@@ -328,8 +342,8 @@ export async function seedDatabase() {
         content: 'We are excited to welcome all students back for the new academic year. Classes begin September 1st, 2024.',
         type: 'general',
         targetAudience: 'all',
-        publishDate: '2024-08-15',
-        expiryDate: '2024-09-15',
+        publishDate: new Date('2024-08-15'),
+        expiryDate: new Date('2024-09-15'),
         priority: 'normal',
         status: 'active',
         createdBy: 1
@@ -340,8 +354,8 @@ export async function seedDatabase() {
         type: 'event',
         targetAudience: 'parents',
         grade: '10',
-        publishDate: '2024-09-01',
-        expiryDate: '2024-09-25',
+        publishDate: new Date('2024-09-01'),
+        expiryDate: new Date('2024-09-25'),
         priority: 'high',
         status: 'active',
         createdBy: 1
@@ -351,7 +365,7 @@ export async function seedDatabase() {
         content: 'The library will now be open until 8 PM on weekdays to provide more study time for students.',
         type: 'academic',
         targetAudience: 'students',
-        publishDate: '2024-08-20',
+        publishDate: new Date('2024-08-20'),
         priority: 'normal',
         status: 'active',
         createdBy: 1
@@ -364,8 +378,8 @@ export async function seedDatabase() {
     await storage.createBookIssue({
       bookId: books[0].id,
       studentId: students[0].id,
-      issueDate: '2024-08-25',
-      dueDate: '2024-09-25',
+      issueDate: new Date('2024-08-25'),
+      dueDate: new Date('2024-09-25'),
       status: 'issued',
       issuedBy: teachers[0].id
     });
@@ -373,8 +387,8 @@ export async function seedDatabase() {
     console.log(`✅ Created book issue`);
 
     // Create sample attendance records
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const today = new Date();
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     await Promise.all([
       ...students.map(student => 
@@ -382,7 +396,7 @@ export async function seedDatabase() {
           studentId: student.id,
           date: today,
           status: 'present',
-          markedBy: teachers[0].id
+          teacherId: teachers[0].id
         })
       ),
       ...students.slice(0, 2).map(student => 
@@ -390,7 +404,7 @@ export async function seedDatabase() {
           studentId: student.id,
           date: yesterday,
           status: 'present',
-          markedBy: teachers[0].id
+          teacherId: teachers[0].id
         })
       ),
       storage.createAttendance({
@@ -398,7 +412,7 @@ export async function seedDatabase() {
         date: yesterday,
         status: 'absent',
         remarks: 'Sick leave',
-        markedBy: teachers[0].id
+        teacherId: teachers[0].id
       })
     ]);
 

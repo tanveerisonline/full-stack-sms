@@ -1,10 +1,33 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { 
+  securityHeaders, 
+  sanitizeInput, 
+  requestLogger, 
+  corsOptions, 
+  errorHandler,
+  generalRateLimit 
+} from "./middleware/security";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Security middleware (applied early)
+app.use(helmet({ 
+  contentSecurityPolicy: false, // Disable CSP for development
+  crossOriginEmbedderPolicy: false 
+}));
+app.use(cors(corsOptions));
+app.use(securityHeaders);
+app.use(generalRateLimit);
+app.use(requestLogger);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+app.use(sanitizeInput);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -39,13 +62,8 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
+  // Apply our enhanced error handler
+  app.use(errorHandler);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
@@ -60,7 +78,7 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '3000', 10);
+  const port = parseInt(process.env.PORT || '5000', 10);
   server.listen(port, '0.0.0.0', () => {
     log(`serving on port ${port}`);
   });

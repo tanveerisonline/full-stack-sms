@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequestJson } from '@/lib/queryClient';
 import type { ExamSubmission } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 
@@ -27,13 +27,13 @@ export function SubmissionTracker({ examId }: SubmissionTrackerProps) {
   // Get submissions for the exam
   const { data: submissions, isLoading } = useQuery<ExamSubmission[]>({
     queryKey: ['/api/exams', examId, 'submissions'],
-    queryFn: () => apiRequest(`/api/exams/${examId}/submissions`),
+    queryFn: () => apiRequestJson(`/api/exams/${examId}/submissions`),
   });
 
   // Get detailed submission data
   const { data: submissionDetails } = useQuery<SubmissionWithDetails>({
     queryKey: ['/api/submissions', selectedSubmission],
-    queryFn: () => selectedSubmission ? apiRequest(`/api/submissions/${selectedSubmission}`) : null,
+    queryFn: selectedSubmission ? () => apiRequestJson(`/api/submissions/${selectedSubmission}`) : undefined,
     enabled: !!selectedSubmission,
   });
 

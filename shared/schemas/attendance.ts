@@ -34,7 +34,6 @@ export const attendanceRelations = relations(attendance, ({ one }) => ({
 // Insert schemas
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({
   id: true,
-  createdAt: true,
   updatedAt: true,
 });
 

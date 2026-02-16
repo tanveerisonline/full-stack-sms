@@ -25,7 +25,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
           ilike(roles.name, `%${search}%`),
           ilike(roles.description, `%${search}%`)
         )
-      );
+      ) as typeof baseQuery;
     }
 
     const [rolesData, totalCount] = await Promise.all([
@@ -96,9 +96,11 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate permissions
     const allPermissions = getAllPermissions();
-    const invalidPermissions = validatedData.permissions?.filter(
-      permission => !allPermissions.includes(permission as any)
-    ) || [];
+    const invalidPermissions = Array.isArray(validatedData.permissions) 
+      ? validatedData.permissions.filter(
+          permission => !allPermissions.includes(permission as any)
+        )
+      : [];
 
     if (invalidPermissions.length > 0) {
       return res.status(400).json({ 
@@ -107,10 +109,15 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    const [newRole] = await db
+    const result = await db
       .insert(roles)
-      .values(validatedData)
-      .returning();
+      .values(validatedData);
+
+    const [newRole] = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.name, validatedData.name))
+      .limit(1);
 
     await logAuditEvent(
       req.user!.id,
@@ -160,9 +167,11 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     // Validate permissions if provided
     if (updateData.permissions) {
       const allPermissions = getAllPermissions();
-      const invalidPermissions = updateData.permissions.filter(
-        permission => !allPermissions.includes(permission as any)
-      );
+      const invalidPermissions = Array.isArray(updateData.permissions)
+        ? updateData.permissions.filter(
+            permission => !allPermissions.includes(permission as any)
+          )
+        : [];
 
       if (invalidPermissions.length > 0) {
         return res.status(400).json({ 
@@ -172,11 +181,16 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
-    const [updatedRole] = await db
+    await db
       .update(roles)
       .set(updateData)
+      .where(eq(roles.id, roleId));
+
+    const [updatedRole] = await db
+      .select()
+      .from(roles)
       .where(eq(roles.id, roleId))
-      .returning();
+      .limit(1);
 
     await logAuditEvent(
       req.user!.id,
@@ -251,11 +265,16 @@ router.patch('/:id/toggle-status', async (req: AuthenticatedRequest, res: Respon
     }
 
     // Toggle active status
-    const [updatedRole] = await db
+    await db
       .update(roles)
       .set({ isActive: !role.isActive })
+      .where(eq(roles.id, roleId));
+
+    const [updatedRole] = await db
+      .select()
+      .from(roles)
       .where(eq(roles.id, roleId))
-      .returning();
+      .limit(1);
 
     await logAuditEvent(
       req.user!.id,
@@ -307,14 +326,19 @@ router.post('/initialize', async (req: AuthenticatedRequest, res: Response) => {
         .where(eq(roles.name, roleData.name));
 
       if (!existingRole) {
-        const [newRole] = await db
+        await db
           .insert(roles)
           .values({
             name: roleData.name,
             description: roleData.description,
             permissions: roleData.permissions,
-          })
-          .returning();
+          });
+
+        const [newRole] = await db
+          .select()
+          .from(roles)
+          .where(eq(roles.name, roleData.name))
+          .limit(1);
         
         createdRoles.push(newRole);
       }
@@ -435,11 +459,16 @@ router.post('/assign', authenticateToken, requireSuperAdmin, async (req: Authent
     const oldRole = user.role;
 
     // Update user's role
-    const [updatedUser] = await db
+    await db
       .update(users)
       .set({ role: role.name })
+      .where(eq(users.id, userId));
+
+    const [updatedUser] = await db
+      .select()
+      .from(users)
       .where(eq(users.id, userId))
-      .returning();
+      .limit(1);
 
     await logAuditEvent(
       req.user!.id,
@@ -494,11 +523,16 @@ router.post('/remove', authenticateToken, requireSuperAdmin, async (req: Authent
     const oldRole = user.role;
 
     // Remove role (set to default role)
-    const [updatedUser] = await db
+    await db
       .update(users)
       .set({ role: 'user' }) // Default role
+      .where(eq(users.id, userId));
+
+    const [updatedUser] = await db
+      .select()
+      .from(users)
       .where(eq(users.id, userId))
-      .returning();
+      .limit(1);
 
     await logAuditEvent(
       req.user!.id,
