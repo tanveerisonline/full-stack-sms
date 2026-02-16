@@ -15,7 +15,14 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-production';
+// Require JWT_SECRET to be set in environment variables
+if (!process.env.JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET environment variable is not set!');
+  console.error('Please set JWT_SECRET in your .env file before starting the server.');
+  process.exit(1);
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];

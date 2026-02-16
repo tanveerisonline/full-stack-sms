@@ -14,6 +14,7 @@ import {
 
 const app = express();
 
+<<<<<<< HEAD
 // Security middleware (applied early)
 app.use(helmet({ 
   contentSecurityPolicy: false, // Disable CSP for development
@@ -28,6 +29,33 @@ app.use(requestLogger);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.use(sanitizeInput);
+=======
+// Security headers middleware
+app.use((req, res, next) => {
+  // CORS configuration
+  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  // Security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.removeHeader('X-Powered-By');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+>>>>>>> 62fee7bf6e4b29f83f81798d499f289a448d0f12
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -62,8 +90,23 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+<<<<<<< HEAD
   // Apply our enhanced error handler
   app.use(errorHandler);
+=======
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    // Log error for debugging
+    console.error('Error:', err);
+
+    // Send error response
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
+  });
+>>>>>>> 62fee7bf6e4b29f83f81798d499f289a448d0f12
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
